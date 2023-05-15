@@ -14,6 +14,8 @@ kvm-y			+= x86.o emulate.o i8259.o irq.o lapic.o \
 			   hyperv.o debugfs.o mmu/mmu.o mmu/page_track.o \
 			   mmu/spte.o
 
+kvm-y                   += vac.o vmx/vac.o svm/vac.o
+
 ifdef CONFIG_HYPERV
 kvm-y			+= kvm_onhyperv.o
 endif
