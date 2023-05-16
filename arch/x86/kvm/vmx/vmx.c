@@ -66,6 +66,7 @@
 #include "vmcs12.h"
 #include "vmx.h"
 #include "x86.h"
+#include "vac.h"
 #include "smm.h"
 
 #ifdef MODULE
