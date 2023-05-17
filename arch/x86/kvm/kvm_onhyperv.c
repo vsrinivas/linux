@@ -101,13 +101,11 @@ int hv_flush_remote_tlbs_range(struct kvm *kvm, gfn_t start_gfn, gfn_t nr_pages)
 
 	return __hv_flush_remote_tlbs_range(kvm, &range);
 }
-EXPORT_SYMBOL_GPL(hv_flush_remote_tlbs_range);
 
 int hv_flush_remote_tlbs(struct kvm *kvm)
 {
 	return __hv_flush_remote_tlbs_range(kvm, NULL);
 }
-EXPORT_SYMBOL_GPL(hv_flush_remote_tlbs);
 
 void hv_track_root_tdp(struct kvm_vcpu *vcpu, hpa_t root_tdp)
 {
@@ -121,4 +119,3 @@ void hv_track_root_tdp(struct kvm_vcpu *vcpu, hpa_t root_tdp)
 		spin_unlock(&kvm_arch->hv_root_tdp_lock);
 	}
 }
-EXPORT_SYMBOL_GPL(hv_track_root_tdp);

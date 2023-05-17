@@ -33,7 +33,6 @@
  * aligned to sizeof(unsigned long) because it's not accessed via bitops.
  */
 u32 kvm_cpu_caps[NR_KVM_CPU_CAPS] __read_mostly;
-EXPORT_SYMBOL_GPL(kvm_cpu_caps);
 
 u32 xstate_required_size(u64 xstate_bv, bool compacted)
 {
@@ -313,7 +312,6 @@ void kvm_update_cpuid_runtime(struct kvm_vcpu *vcpu)
 {
 	__kvm_update_cpuid_runtime(vcpu, vcpu->arch.cpuid_entries, vcpu->arch.cpuid_nent);
 }
-EXPORT_SYMBOL_GPL(kvm_update_cpuid_runtime);
 
 static bool kvm_cpuid_has_hyperv(struct kvm_cpuid_entry2 *entries, int nent)
 {
@@ -787,7 +785,6 @@ void kvm_set_cpu_caps(void)
 		kvm_cpu_cap_clear(X86_FEATURE_RDPID);
 	}
 }
-EXPORT_SYMBOL_GPL(kvm_set_cpu_caps);
 
 struct kvm_cpuid_array {
 	struct kvm_cpuid_entry2 *entries;
@@ -1386,7 +1383,6 @@ struct kvm_cpuid_entry2 *kvm_find_cpuid_entry_index(struct kvm_vcpu *vcpu,
 	return cpuid_entry2_find(vcpu->arch.cpuid_entries, vcpu->arch.cpuid_nent,
 				 function, index);
 }
-EXPORT_SYMBOL_GPL(kvm_find_cpuid_entry_index);
 
 struct kvm_cpuid_entry2 *kvm_find_cpuid_entry(struct kvm_vcpu *vcpu,
 					      u32 function)
@@ -1394,7 +1390,6 @@ struct kvm_cpuid_entry2 *kvm_find_cpuid_entry(struct kvm_vcpu *vcpu,
 	return cpuid_entry2_find(vcpu->arch.cpuid_entries, vcpu->arch.cpuid_nent,
 				 function, KVM_CPUID_INDEX_NOT_SIGNIFICANT);
 }
-EXPORT_SYMBOL_GPL(kvm_find_cpuid_entry);
 
 /*
  * Intel CPUID semantics treats any query for an out-of-range leaf as if the
@@ -1514,7 +1509,6 @@ bool kvm_cpuid(struct kvm_vcpu *vcpu, u32 *eax, u32 *ebx,
 			used_max_basic);
 	return exact;
 }
-EXPORT_SYMBOL_GPL(kvm_cpuid);
 
 int kvm_emulate_cpuid(struct kvm_vcpu *vcpu)
 {
@@ -1532,4 +1526,3 @@ int kvm_emulate_cpuid(struct kvm_vcpu *vcpu)
 	kvm_rdx_write(vcpu, edx);
 	return kvm_skip_emulated_instruction(vcpu);
 }
-EXPORT_SYMBOL_GPL(kvm_emulate_cpuid);

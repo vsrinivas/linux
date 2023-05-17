@@ -9,6 +9,13 @@
 #include "kvm_cache_regs.h"
 #include "kvm_emulate.h"
 
+#ifdef CONFIG_KVM_AMD
+int __init svm_init(void);
+#endif
+#ifdef CONFIG_KVM_INTEL
+int __init vmx_init(void);
+#endif
+
 struct kvm_caps {
 	/* control of guest tsc rate supported? */
 	bool has_tsc_control;

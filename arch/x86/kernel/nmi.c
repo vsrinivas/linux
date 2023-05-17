@@ -565,7 +565,7 @@ DEFINE_IDTENTRY_RAW(exc_nmi_kvm_vmx)
 {
 	exc_nmi(regs);
 }
-#if IS_MODULE(CONFIG_KVM_INTEL)
+#if IS_MODULE(CONFIG_KVM)
 EXPORT_SYMBOL_GPL(asm_exc_nmi_kvm_vmx);
 #endif
 #endif
