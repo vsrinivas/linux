@@ -479,11 +479,6 @@ noinline void invept_error(unsigned long ext, u64 eptp, gpa_t gpa)
 }
 
 DEFINE_PER_CPU(struct vmcs *, current_vmcs);
-/*
- * We maintain a per-CPU linked-list of VMCS loaded on that CPU. This is needed
- * when a CPU is brought down, and we need to VMCLEAR all VMCSs loaded on it.
- */
-static DEFINE_PER_CPU(struct list_head, loaded_vmcss_on_cpu);
 
 static DECLARE_BITMAP(vmx_vpid_bitmap, VMX_NR_VPIDS);
 static DEFINE_SPINLOCK(vmx_vpid_lock);
@@ -590,34 +585,8 @@ static __init void hv_init_evmcs(void)
 	}
 }
 
-static void hv_reset_evmcs(void)
-{
-	struct hv_vp_assist_page *vp_ap;
-
-	if (!kvm_is_using_evmcs())
-		return;
-
-	/*
-	 * KVM should enable eVMCS if and only if all CPUs have a VP assist
-	 * page, and should reject CPU onlining if eVMCS is enabled the CPU
-	 * doesn't have a VP assist page allocated.
-	 */
-	vp_ap = hv_get_vp_assist_page(smp_processor_id());
-	if (WARN_ON_ONCE(!vp_ap))
-		return;
-
-	/*
-	 * Reset everything to support using non-enlightened VMCS access later
-	 * (e.g. when we reload the module with enlightened_vmcs=0)
-	 */
-	vp_ap->nested_control.features.directhypercall = 0;
-	vp_ap->current_nested_vmcs = 0;
-	vp_ap->enlighten_vmentry = 0;
-}
-
 #else /* IS_ENABLED(CONFIG_HYPERV) */
 static void hv_init_evmcs(void) {}
-static void hv_reset_evmcs(void) {}
 #endif /* IS_ENABLED(CONFIG_HYPERV) */
 
 /*
@@ -740,56 +709,6 @@ static int vmx_set_guest_uret_msr(struct vcpu_vmx *vmx,
 	if (!ret)
 		msr->data = data;
 	return ret;
-}
-
-#ifdef CONFIG_KEXEC_CORE
-static void crash_vmclear_local_loaded_vmcss(void)
-{
-	int cpu = raw_smp_processor_id();
-	struct loaded_vmcs *v;
-
-	list_for_each_entry(v, &per_cpu(loaded_vmcss_on_cpu, cpu),
-			    loaded_vmcss_on_cpu_link)
-		vmcs_clear(v->vmcs);
-}
-#endif /* CONFIG_KEXEC_CORE */
-
-static void __loaded_vmcs_clear(void *arg)
-{
-	struct loaded_vmcs *loaded_vmcs = arg;
-	int cpu = raw_smp_processor_id();
-
-	if (loaded_vmcs->cpu != cpu)
-		return; /* vcpu migration can race with cpu offline */
-	if (per_cpu(current_vmcs, cpu) == loaded_vmcs->vmcs)
-		per_cpu(current_vmcs, cpu) = NULL;
-
-	vmcs_clear(loaded_vmcs->vmcs);
-	if (loaded_vmcs->shadow_vmcs && loaded_vmcs->launched)
-		vmcs_clear(loaded_vmcs->shadow_vmcs);
-
-	list_del(&loaded_vmcs->loaded_vmcss_on_cpu_link);
-
-	/*
-	 * Ensure all writes to loaded_vmcs, including deleting it from its
-	 * current percpu list, complete before setting loaded_vmcs->cpu to
-	 * -1, otherwise a different cpu can see loaded_vmcs->cpu == -1 first
-	 * and add loaded_vmcs to its percpu list before it's deleted from this
-	 * cpu's list. Pairs with the smp_rmb() in vmx_vcpu_load_vmcs().
-	 */
-	smp_wmb();
-
-	loaded_vmcs->cpu = -1;
-	loaded_vmcs->launched = 0;
-}
-
-void loaded_vmcs_clear(struct loaded_vmcs *loaded_vmcs)
-{
-	int cpu = loaded_vmcs->cpu;
-
-	if (cpu != -1)
-		smp_call_function_single(cpu,
-			 __loaded_vmcs_clear, loaded_vmcs, 1);
 }
 
 static bool vmx_segment_cache_test_set(struct vcpu_vmx *vmx, unsigned seg,
@@ -1392,7 +1311,7 @@ void vmx_vcpu_load_vmcs(struct kvm_vcpu *vcpu, int cpu,
 	struct vmcs *prev;
 
 	if (!already_loaded) {
-		loaded_vmcs_clear(vmx->loaded_vmcs);
+		vac_loaded_vmcs_clear(vmx->loaded_vmcs);
 		local_irq_disable();
 
 		/*
@@ -1403,8 +1322,9 @@ void vmx_vcpu_load_vmcs(struct kvm_vcpu *vcpu, int cpu,
 		 */
 		smp_rmb();
 
-		list_add(&vmx->loaded_vmcs->loaded_vmcss_on_cpu_link,
-			 &per_cpu(loaded_vmcss_on_cpu, cpu));
+		vac_add_vmcs_to_loaded_vmcss_on_cpu(
+				&vmx->loaded_vmcs->loaded_vmcss_on_cpu_link,
+				cpu);
 		local_irq_enable();
 	}
 
@@ -2805,27 +2725,6 @@ static int vmx_hardware_enable(void)
 	return 0;
 }
 
-static void vmclear_local_loaded_vmcss(void)
-{
-	int cpu = raw_smp_processor_id();
-	struct loaded_vmcs *v, *n;
-
-	list_for_each_entry_safe(v, n, &per_cpu(loaded_vmcss_on_cpu, cpu),
-				 loaded_vmcss_on_cpu_link)
-		__loaded_vmcs_clear(v);
-}
-
-static void vmx_hardware_disable(void)
-{
-	vmclear_local_loaded_vmcss();
-
-	if (cpu_vmxoff())
-		kvm_spurious_fault();
-
-	hv_reset_evmcs();
-
-	intel_pt_handle_vmx(0);
-}
 
 struct vmcs *alloc_vmcs_cpu(bool shadow, int cpu, gfp_t flags)
 {
@@ -2862,7 +2761,7 @@ void free_loaded_vmcs(struct loaded_vmcs *loaded_vmcs)
 {
 	if (!loaded_vmcs->vmcs)
 		return;
-	loaded_vmcs_clear(loaded_vmcs);
+	vac_loaded_vmcs_clear(loaded_vmcs);
 	free_vmcs(loaded_vmcs->vmcs);
 	loaded_vmcs->vmcs = NULL;
 	if (loaded_vmcs->msr_bitmap)
@@ -8565,7 +8464,7 @@ static struct kvm_x86_init_ops vmx_init_ops __initdata = {
 
 int __init vmx_init(void)
 {
-	int r, cpu;
+	int r;
 
 	if (!kvm_is_vmx_supported())
 		return -EOPNOTSUPP;
@@ -8593,15 +8492,9 @@ int __init vmx_init(void)
 
 	vmx_setup_fb_clear_ctrl();
 
-	for_each_possible_cpu(cpu) {
-		INIT_LIST_HEAD(&per_cpu(loaded_vmcss_on_cpu, cpu));
-
-		pi_init_cpu(cpu);
-	}
-
 #ifdef CONFIG_KEXEC_CORE
 	rcu_assign_pointer(crash_vmclear_loaded_vmcss,
-			   crash_vmclear_local_loaded_vmcss);
+			   vac_crash_vmclear_local_loaded_vmcss);
 #endif
 	vmx_check_vmcs12_offsets();
 

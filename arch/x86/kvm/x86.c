@@ -13417,6 +13417,9 @@ int kvm_sev_es_string_io(struct kvm_vcpu *vcpu, unsigned int size,
 
 static int __init kvm_x86_init(void)
 {
+	// TODO: Remove this when VAC is made into a module
+	vac_init();
+
 	kvm_mmu_x86_module_init();
 	mitigate_smt_rsb &= boot_cpu_has_bug(X86_BUG_SMT_RSB) && cpu_smt_possible();
 

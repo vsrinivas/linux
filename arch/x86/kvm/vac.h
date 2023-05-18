@@ -5,6 +5,14 @@
 
 #include <linux/user-return-notifier.h>
 
+// TODO: Remove this when VAC is made into a module
+int __init vac_init(void);
+
+#ifdef CONFIG_KVM_INTEL
+int __init vac_vmx_init(void);
+#endif
+
+
 /*
  * Restoring the host value for MSRs that are only consumed when running in
  * usermode, e.g. SYSCALL MSRs and TSC_AUX, can be deferred until the CPU

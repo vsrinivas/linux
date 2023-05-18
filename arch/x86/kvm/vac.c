@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
-#include "vac.h"
 #include <asm/msr.h>
+#include <asm/virtext.h>
+
+#include "vac.h"
 
 u32 __read_mostly kvm_uret_msrs_list[KVM_MAX_NR_USER_RETURN_MSRS];
 struct kvm_user_return_msrs __percpu *user_return_msrs;
@@ -91,5 +93,14 @@ int kvm_set_user_return_msr(unsigned int slot, u64 value, u64 mask)
 		user_return_notifier_register(&msrs->urn);
 		msrs->registered = true;
 	}
+	return 0;
+}
+
+int __init vac_init(void)
+{
+#ifdef CONFIG_KVM_INTEL
+	if (cpu_has_vmx())
+		return vac_vmx_init();
+#endif
 	return 0;
 }
