@@ -62,6 +62,7 @@
 #include "pmu.h"
 #include "sgx.h"
 #include "trace.h"
+#include "vac.h"
 #include "vmcs.h"
 #include "vmcs12.h"
 #include "vmx.h"
@@ -477,7 +478,6 @@ noinline void invept_error(unsigned long ext, u64 eptp, gpa_t gpa)
 			ext, eptp, gpa);
 }
 
-static DEFINE_PER_CPU(struct vmcs *, vmxarea);
 DEFINE_PER_CPU(struct vmcs *, current_vmcs);
 /*
  * We maintain a per-CPU linked-list of VMCS loaded on that CPU. This is needed
@@ -2778,7 +2778,7 @@ fault:
 static int vmx_hardware_enable(void)
 {
 	int cpu = raw_smp_processor_id();
-	u64 phys_addr = __pa(per_cpu(vmxarea, cpu));
+	u64 phys_addr = __pa(vac_get_vmxarea(cpu));
 	int r;
 
 	if (cr4_read_shadow() & X86_CR4_VMXE)
@@ -2907,8 +2907,8 @@ static void free_kvm_area(void)
 	int cpu;
 
 	for_each_possible_cpu(cpu) {
-		free_vmcs(per_cpu(vmxarea, cpu));
-		per_cpu(vmxarea, cpu) = NULL;
+		free_vmcs(vac_get_vmxarea(cpu));
+		vac_set_vmxarea(NULL, cpu);
 	}
 }
 
@@ -2938,7 +2938,7 @@ static __init int alloc_kvm_area(void)
 		if (kvm_is_using_evmcs())
 			vmcs->hdr.revision_id = vmcs_config.revision_id;
 
-		per_cpu(vmxarea, cpu) = vmcs;
+		vac_set_vmxarea(vmcs, cpu);
 	}
 	return 0;
 }
