@@ -12,6 +12,8 @@ static DEFINE_PER_CPU(struct vmcs *, vmxarea);
  */
 static DEFINE_PER_CPU(struct list_head, loaded_vmcss_on_cpu);
 
+DEFINE_PER_CPU(struct vmcs *, current_vmcs);
+
 void vac_set_vmxarea(struct vmcs *vmcs, int cpu) {
 	per_cpu(vmxarea, cpu) = vmcs;
 }
