@@ -17,3 +17,5 @@ struct vmcs *vac_get_vmxarea(int cpu);
 void vac_set_vmxarea(struct vmcs *vmcs, int cpu);
 
 struct vmcs *vac_get_vmxarea(int cpu);
+int allocate_vpid(void);
+void free_vpid(int);

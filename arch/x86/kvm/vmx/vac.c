@@ -191,5 +191,35 @@ int __init vac_vmx_init(void)
 		pi_init_cpu(cpu);
 	}
 
+        set_bit(0, vmx_vpid_bitmap); /* 0 is reserved for host */
+
 	return 0;
+}
+
+static DECLARE_BITMAP(vmx_vpid_bitmap, VMX_NR_VPIDS);
+static DEFINE_SPINLOCK(vmx_vpid_lock);
+
+int allocate_vpid(void)
+{
+        int vpid;
+
+        if (!enable_vpid)
+                return 0;
+        spin_lock(&vmx_vpid_lock);
+        vpid = find_first_zero_bit(vmx_vpid_bitmap, VMX_NR_VPIDS);
+        if (vpid < VMX_NR_VPIDS)
+                __set_bit(vpid, vmx_vpid_bitmap);
+        else
+                vpid = 0;
+        spin_unlock(&vmx_vpid_lock);
+        return vpid;
+}
+
+void free_vpid(int vpid)
+{
+        if (!enable_vpid || vpid == 0)
+                return;
+        spin_lock(&vmx_vpid_lock);
+        __clear_bit(vpid, vmx_vpid_bitmap);
+        spin_unlock(&vmx_vpid_lock);
 }
