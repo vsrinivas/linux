@@ -30,5 +30,6 @@ static inline void hardware_disable_all(void)
 #endif /* CONFIG_KVM_GENERIC_HARDWARE_ENABLING */
 
 DECLARE_PER_CPU(cpumask_var_t, cpu_kick_mask);
+DECLARE_PER_CPU(struct kvm_vcpu *, kvm_running_vcpu);
 
 #endif
