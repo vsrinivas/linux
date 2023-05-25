@@ -13,14 +13,17 @@ static DEFINE_PER_CPU(struct vmcs *, vmxarea);
 static DEFINE_PER_CPU(struct list_head, loaded_vmcss_on_cpu);
 
 DEFINE_PER_CPU(struct vmcs *, current_vmcs);
+EXPORT_SYMBOL(current_vmcs);
 
 void vac_set_vmxarea(struct vmcs *vmcs, int cpu) {
 	per_cpu(vmxarea, cpu) = vmcs;
 }
+EXPORT_SYMBOL_GPL(vac_set_vmxarea);
 
 struct vmcs *vac_get_vmxarea(int cpu) {
 	return per_cpu(vmxarea, cpu);
 }
+EXPORT_SYMBOL_GPL(vac_get_vmxarea);
 
 #ifdef CONFIG_KEXEC_CORE
 void vac_crash_vmclear_local_loaded_vmcss(void)
@@ -32,6 +35,7 @@ void vac_crash_vmclear_local_loaded_vmcss(void)
 			    loaded_vmcss_on_cpu_link)
 		vmcs_clear(v->vmcs);
 }
+EXPORT_SYMBOL_GPL(vac_crash_vmclear_local_loaded_vmcss);
 #endif /* CONFIG_KEXEC_CORE */
 
 void vac_add_vmcs_to_loaded_vmcss_on_cpu(
@@ -40,6 +44,7 @@ void vac_add_vmcs_to_loaded_vmcss_on_cpu(
 {
 	list_add(loaded_vmcss_on_cpu_link, &per_cpu(loaded_vmcss_on_cpu, cpu));
 }
+EXPORT_SYMBOL(vac_add_vmcs_to_loaded_vmcss_on_cpu);
 
 static void __loaded_vmcs_clear(void *arg)
 {
@@ -78,6 +83,7 @@ void vac_loaded_vmcs_clear(struct loaded_vmcs *loaded_vmcs)
 		smp_call_function_single(cpu,
 			 __loaded_vmcs_clear, loaded_vmcs, 1);
 }
+EXPORT_SYMBOL_GPL(vac_loaded_vmcs_clear);
 
 static void vmclear_local_loaded_vmcss(void)
 {
@@ -198,6 +204,7 @@ int __init vac_vmx_init(void)
 
 	return 0;
 }
+EXPORT_SYMBOL(vac_vmx_init);	/* XXX: init call or call from kvm? */
 
 int allocate_vpid(void)
 {
@@ -212,6 +219,7 @@ int allocate_vpid(void)
         spin_unlock(&vmx_vpid_lock);
         return vpid;
 }
+EXPORT_SYMBOL_GPL(allocate_vpid);
 
 void free_vpid(int vpid)
 {
