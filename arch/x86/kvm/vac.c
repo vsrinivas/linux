@@ -6,9 +6,12 @@
 #include "vac.h"
 
 u32 __read_mostly kvm_uret_msrs_list[KVM_MAX_NR_USER_RETURN_MSRS];
+EXPORT_SYMBOL(kvm_uret_msrs_list);
 struct kvm_user_return_msrs __percpu *user_return_msrs;
+EXPORT_SYMBOL(user_return_msrs);
 
 u32 __read_mostly kvm_nr_uret_msrs;
+EXPORT_SYMBOL(kvm_nr_uret_msrs);
 
 static void kvm_on_user_return(struct user_return_notifier *urn)
 {
@@ -62,6 +65,7 @@ int kvm_add_user_return_msr(u32 msr)
 	kvm_uret_msrs_list[kvm_nr_uret_msrs] = msr;
 	return kvm_nr_uret_msrs++;
 }
+EXPORT_SYMBOL(kvm_add_user_return_msr);
 
 int kvm_find_user_return_msr(u32 msr)
 {
@@ -73,6 +77,7 @@ int kvm_find_user_return_msr(u32 msr)
 	}
 	return -1;
 }
+EXPORT_SYMBOL(kvm_find_user_return_msr);
 
 int kvm_set_user_return_msr(unsigned int slot, u64 value, u64 mask)
 {
@@ -95,6 +100,7 @@ int kvm_set_user_return_msr(unsigned int slot, u64 value, u64 mask)
 	}
 	return 0;
 }
+EXPORT_SYMBOL(kvm_set_user_return_msr);
 
 int __init vac_init(void)
 {
@@ -104,3 +110,18 @@ int __init vac_init(void)
 #endif
 	return 0;
 }
+
+/*
+ * Handle a fault on a hardware virtualization (VMX or SVM) instruction.
+ *
+ * Hardware virtualization extension instructions may fault if a reboot turns
+ * off virtualization while processes are running.  Usually after catching the
+ * fault we just panic; during reboot instead the instruction is ignored.
+ */
+noinstr void kvm_spurious_fault(void)
+{
+        /* Fault while not rebooting.  We want the trace. */
+//        BUG_ON(!kvm_rebooting);	// XXX virt vac.c move
+	BUG_ON(1);
+}
+EXPORT_SYMBOL(kvm_spurious_fault);

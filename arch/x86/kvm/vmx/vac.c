@@ -5,6 +5,8 @@
 #include "hyperv.h"
 #include "vmx.h"
 
+void vmclear_error(struct vmcs *vmcs, u64 phys_addr) {} // XXX Vac
+
 static DEFINE_PER_CPU(struct vmcs *, vmxarea);
 /*
  * We maintain a per-CPU linked-list of VMCS loaded on that CPU. This is needed
@@ -179,32 +181,33 @@ void vmx_hardware_disable(void)
 {
 	vmclear_local_loaded_vmcss();
 
-	if (cpu_vmxoff())
+	if (cpu_vmxoff()) {
 		kvm_spurious_fault();
+	}
 
 	hv_reset_evmcs();
 
 	intel_pt_handle_vmx(0);
 }
+EXPORT_SYMBOL(vmx_hardware_disable);
 
 static DECLARE_BITMAP(vmx_vpid_bitmap, VMX_NR_VPIDS);
 static DEFINE_SPINLOCK(vmx_vpid_lock);
 
-int __init vac_vmx_init(void)
+int vac_vmx_init(void)
 {
 	int cpu;
 
 	for_each_possible_cpu(cpu) {
 		INIT_LIST_HEAD(&per_cpu(loaded_vmcss_on_cpu, cpu));
-
-		pi_init_cpu(cpu);
+		//pi_init_cpu(cpu);
+		// XXX: Pending moving the posted interrupt list into VAC 
 	}
 
         set_bit(0, vmx_vpid_bitmap); /* 0 is reserved for host */
 
 	return 0;
 }
-EXPORT_SYMBOL(vac_vmx_init);	/* XXX: init call or call from kvm? */
 
 int allocate_vpid(void)
 {

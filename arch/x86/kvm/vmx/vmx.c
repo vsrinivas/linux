@@ -456,8 +456,8 @@ noinline void vmwrite_error(unsigned long field, unsigned long value)
 
 noinline void vmclear_error(struct vmcs *vmcs, u64 phys_addr)
 {
-	vmx_insn_failed("vmclear failed: %p/%llx err=%u\n",
-			vmcs, phys_addr, vmcs_read32(VM_INSTRUCTION_ERROR));
+        vmx_insn_failed("vmclear failed: %p/%llx err=%u\n",
+                        vmcs, phys_addr, vmcs_read32(VM_INSTRUCTION_ERROR));
 }
 
 noinline void vmptrld_error(struct vmcs *vmcs, u64 phys_addr)
