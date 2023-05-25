@@ -203,8 +203,6 @@ int allocate_vpid(void)
 {
         int vpid;
 
-        if (!enable_vpid)
-                return 0;
         spin_lock(&vmx_vpid_lock);
         vpid = find_first_zero_bit(vmx_vpid_bitmap, VMX_NR_VPIDS);
         if (vpid < VMX_NR_VPIDS)
@@ -217,9 +215,10 @@ int allocate_vpid(void)
 
 void free_vpid(int vpid)
 {
-        if (!enable_vpid || vpid == 0)
+        if (vpid == 0)
                 return;
         spin_lock(&vmx_vpid_lock);
         __clear_bit(vpid, vmx_vpid_bitmap);
         spin_unlock(&vmx_vpid_lock);
 }
+EXPORT_SYMBOL_GPL(free_vpid);
