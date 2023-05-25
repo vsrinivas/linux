@@ -181,6 +181,9 @@ void vmx_hardware_disable(void)
 	intel_pt_handle_vmx(0);
 }
 
+static DECLARE_BITMAP(vmx_vpid_bitmap, VMX_NR_VPIDS);
+static DEFINE_SPINLOCK(vmx_vpid_lock);
+
 int __init vac_vmx_init(void)
 {
 	int cpu;
@@ -195,9 +198,6 @@ int __init vac_vmx_init(void)
 
 	return 0;
 }
-
-static DECLARE_BITMAP(vmx_vpid_bitmap, VMX_NR_VPIDS);
-static DEFINE_SPINLOCK(vmx_vpid_lock);
 
 int allocate_vpid(void)
 {

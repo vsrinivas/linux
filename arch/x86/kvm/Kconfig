@@ -18,6 +18,10 @@ menuconfig VIRTUALIZATION
 
 if VIRTUALIZATION
 
+config VAC
+	tristate "VAC"
+
+
 config KVM
 	tristate "Kernel-based Virtual Machine (KVM) support"
 	depends on HAVE_KVM
