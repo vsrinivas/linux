@@ -176,6 +176,13 @@ module_param(vector_hashing, bool, S_IRUGO);
 bool __read_mostly enable_vmware_backdoor = false;
 module_param(enable_vmware_backdoor, bool, S_IRUGO);
 
+/* allow nested virtualization in KVM */
+int __read_mostly nested = true;
+module_param(nested, int, S_IRUGO);
+
+bool __read_mostly vnmi = true;
+module_param(vnmi, bool, S_IRUGO);
+
 /*
  * Flags to manipulate forced emulation behavior (any non-zero value will
  * enable forced emulation).

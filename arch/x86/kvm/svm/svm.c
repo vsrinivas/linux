@@ -171,6 +171,9 @@ static const struct svm_direct_access_msrs {
  *	count only mode.
  */
 
+extern bool vnmi;
+extern bool nested;
+
 static unsigned short pause_filter_thresh = KVM_DEFAULT_PLE_GAP;
 module_param(pause_filter_thresh, ushort, 0444);
 
@@ -195,10 +198,6 @@ module_param(pause_filter_count_max, ushort, 0444);
  */
 bool npt_enabled = true;
 module_param_named(npt, npt_enabled, bool, 0444);
-
-/* allow nested virtualization in KVM/SVM */
-static int nested = true;
-module_param(nested, int, S_IRUGO);
 
 /* enable/disable Next RIP Save */
 static int nrips = true;
@@ -232,9 +231,6 @@ module_param(dump_invalid_vmcb, bool, 0644);
 
 bool intercept_smi = true;
 module_param(intercept_smi, bool, 0444);
-
-bool vnmi = true;
-module_param(vnmi, bool, 0444);
 
 static bool svm_gp_erratum_intercept = true;
 
