@@ -176,6 +176,7 @@ int vmx_hardware_enable(void)
 
 	return 0;
 }
+EXPORT_SYMBOL(vmx_hardware_enable);
 
 void vmx_hardware_disable(void)
 {
