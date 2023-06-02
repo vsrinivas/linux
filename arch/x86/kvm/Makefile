@@ -9,7 +9,7 @@ endif
 
 include $(srctree)/virt/kvm/Makefile.kvm
 
-xvac-y			:= vac0.o vac.o svm/vac.o vmx/vac.o
+xvac-y			:= vac.o svm/vac.o vmx/vac.o
 kvm-y			+= x86.o emulate.o i8259.o irq.o lapic.o \
 			   i8254.o ioapic.o irq_comm.o cpuid.o pmu.o mtrr.o \
 			   hyperv.o debugfs.o mmu/mmu.o mmu/page_track.o \
