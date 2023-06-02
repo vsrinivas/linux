@@ -171,7 +171,7 @@ int vmx_hardware_enable(void)
 		return r;
 	}
 
-	if (enable_ept)
+//	if (enable_ept)			// XXX: VAC: Pending whether ept enable should be (why needed?) into vac
 		ept_sync_global();
 
 	return 0;
