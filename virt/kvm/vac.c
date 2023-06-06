@@ -10,6 +10,7 @@ DEFINE_PER_CPU(cpumask_var_t, cpu_kick_mask);
 EXPORT_SYMBOL(cpu_kick_mask);
 
 DEFINE_PER_CPU(struct kvm_vcpu *, kvm_running_vcpu);
+EXPORT_SYMBOL(kvm_running_vcpu);
 
 #ifdef CONFIG_KVM_GENERIC_HARDWARE_ENABLING
 DEFINE_MUTEX(vac_lock);
@@ -56,6 +57,7 @@ int kvm_online_cpu(unsigned int cpu)
 	mutex_unlock(&vac_lock);
 	return ret;
 }
+EXPORT_SYMBOL_GPL(kvm_online_cpu);
 
 static void hardware_disable_nolock(void *junk)
 {
@@ -79,6 +81,7 @@ int kvm_offline_cpu(unsigned int cpu)
 	mutex_unlock(&vac_lock);
 	return 0;
 }
+EXPORT_SYMBOL_GPL(kvm_offline_cpu);
 
 static void hardware_disable_all_nolock(void)
 {
@@ -97,6 +100,7 @@ void hardware_disable_all(void)
 	mutex_unlock(&vac_lock);
 	cpus_read_unlock();
 }
+EXPORT_SYMBOL_GPL(hardware_disable_all);
 
 int hardware_enable_all(void)
 {
@@ -129,6 +133,7 @@ int hardware_enable_all(void)
 
 	return r;
 }
+EXPORT_SYMBOL_GPL(hardware_enable_all);
 
 static int kvm_reboot(struct notifier_block *notifier, unsigned long val,
 		      void *v)
@@ -176,10 +181,12 @@ struct notifier_block kvm_reboot_notifier = {
 	.notifier_call = kvm_reboot,
 	.priority = 0,
 };
+EXPORT_SYMBOL_GPL(kvm_reboot_notifier);
 
 struct syscore_ops kvm_syscore_ops = {
 	.suspend = kvm_suspend,
 	.resume = kvm_resume,
 };
+EXPORT_SYMBOL_GPL(kvm_syscore_ops);
 
 #endif

@@ -12051,12 +12051,14 @@ int kvm_arch_hardware_enable(void)
 	}
 	return 0;
 }
+EXPORT_SYMBOL_GPL(kvm_arch_hardware_enable);
 
 void kvm_arch_hardware_disable(void)
 {
 	static_call(kvm_x86_hardware_disable)();
 	drop_user_return_notifiers();
 }
+EXPORT_SYMBOL_GPL(kvm_arch_hardware_disable);
 
 bool kvm_vcpu_is_reset_bsp(struct kvm_vcpu *vcpu)
 {
