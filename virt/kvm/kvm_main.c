@@ -5087,9 +5087,8 @@ static struct file_operations kvm_chardev_ops = {
 };
 
 static struct miscdevice kvm_dev = {
-	KVM_MINOR,
-	"kvm",
-	&kvm_chardev_ops,
+	.minor = MISC_DYNAMIC_MINOR,
+	.fops = &kvm_chardev_ops,
 };
 
 static void kvm_io_bus_destroy(struct kvm_io_bus *bus)
@@ -5828,6 +5827,9 @@ int kvm_init(unsigned vcpu_size, unsigned vcpu_align, struct module *module)
 	r = kvm_vfio_ops_init();
 	if (WARN_ON_ONCE(r))
 		goto err_vfio;
+
+	// XXX: VAC: seqno?
+	kvm_dev.name = kasprintf(GFP_KERNEL, "kvm%d", get_random_u8());
 
 	/*
 	 * Registration _must_ be the very last thing done, as this exposes
