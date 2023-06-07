@@ -142,8 +142,6 @@ struct kvm_x86_ops kvm_x86_ops __read_mostly;
 #define KVM_X86_OP_OPTIONAL KVM_X86_OP
 #define KVM_X86_OP_OPTIONAL_RET0 KVM_X86_OP
 #include <asm/kvm-x86-ops.h>
-EXPORT_STATIC_CALL_GPL(kvm_x86_get_cs_db_l_bits);
-EXPORT_STATIC_CALL_GPL(kvm_x86_cache_reg);
 
 static bool __read_mostly ignore_msrs = 0;
 module_param(ignore_msrs, bool, S_IRUGO | S_IWUSR);
