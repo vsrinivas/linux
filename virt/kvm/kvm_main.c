@@ -5087,9 +5087,8 @@ static struct file_operations kvm_chardev_ops = {
 };
 
 static struct miscdevice kvm_dev = {
-	KVM_MINOR,
-	"kvm",
-	&kvm_chardev_ops,
+	.minor = MISC_DYNAMIC_MINOR,
+	.fops = &kvm_chardev_ops,
 };
 
 static void kvm_io_bus_destroy(struct kvm_io_bus *bus)
@@ -5775,17 +5774,12 @@ void kvm_unregister_perf_callbacks(void)
 int kvm_init(unsigned vcpu_size, unsigned vcpu_align, struct module *module)
 {
 	int r;
-	int cpu;
+	//int cpu;
 
-#ifdef CONFIG_KVM_GENERIC_HARDWARE_ENABLING
-	r = cpuhp_setup_state_nocalls(CPUHP_AP_KVM_ONLINE, "kvm/cpu:online",
-				      kvm_online_cpu, kvm_offline_cpu);
+	extern int kvm_init_once(void);
+	r = kvm_init_once();
 	if (r)
 		return r;
-
-	register_reboot_notifier(&kvm_reboot_notifier);
-	register_syscore_ops(&kvm_syscore_ops);
-#endif
 
 	/* A kmem cache lets us meet the alignment requirements of fx_save. */
 	if (!vcpu_align)
@@ -5800,14 +5794,6 @@ int kvm_init(unsigned vcpu_size, unsigned vcpu_align, struct module *module)
 	if (!kvm_vcpu_cache) {
 		r = -ENOMEM;
 		goto err_vcpu_cache;
-	}
-
-	for_each_possible_cpu(cpu) {
-		if (!alloc_cpumask_var_node(&per_cpu(cpu_kick_mask, cpu),
-					    GFP_KERNEL, cpu_to_node(cpu))) {
-			r = -ENOMEM;
-			goto err_cpu_kick_mask;
-		}
 	}
 
 	r = kvm_irqfd_init();
@@ -5829,6 +5815,9 @@ int kvm_init(unsigned vcpu_size, unsigned vcpu_align, struct module *module)
 	if (WARN_ON_ONCE(r))
 		goto err_vfio;
 
+	// XXX: VAC: seqno?
+	kvm_dev.name = kasprintf(GFP_KERNEL, "kvm%d", get_random_u8());
+
 	/*
 	 * Registration _must_ be the very last thing done, as this exposes
 	 * /dev/kvm to userspace, i.e. all infrastructure must be setup!
@@ -5848,23 +5837,27 @@ err_vfio:
 err_async_pf:
 	kvm_irqfd_exit();
 err_irqfd:
+#if 0
 err_cpu_kick_mask:
 	for_each_possible_cpu(cpu)
 		free_cpumask_var(per_cpu(cpu_kick_mask, cpu));
 	kmem_cache_destroy(kvm_vcpu_cache);
+#endif // XXX VAC
 err_vcpu_cache:
+#if 0
 #ifdef CONFIG_KVM_GENERIC_HARDWARE_ENABLING
 	unregister_syscore_ops(&kvm_syscore_ops);
 	unregister_reboot_notifier(&kvm_reboot_notifier);
 	cpuhp_remove_state_nocalls(CPUHP_AP_KVM_ONLINE);
 #endif
+#endif // XXX VAC
 	return r;
 }
 KVM_EXPORT_SYMBOL_GPL(kvm_init);
 
 void kvm_exit(void)
 {
-	int cpu;
+//	int cpu;
 
 	/*
 	 * Note, unregistering /dev/kvm doesn't strictly need to come first,
@@ -5874,16 +5867,20 @@ void kvm_exit(void)
 	misc_deregister(&kvm_dev);
 
 	debugfs_remove_recursive(kvm_debugfs_dir);
+#if 0
 	for_each_possible_cpu(cpu)
 		free_cpumask_var(per_cpu(cpu_kick_mask, cpu));
+#endif // XXX VAC
 	kmem_cache_destroy(kvm_vcpu_cache);
 	kvm_vfio_ops_exit();
 	kvm_async_pf_deinit();
+#if 0
 #ifdef CONFIG_KVM_GENERIC_HARDWARE_ENABLING
 	unregister_syscore_ops(&kvm_syscore_ops);
 	unregister_reboot_notifier(&kvm_reboot_notifier);
 	cpuhp_remove_state_nocalls(CPUHP_AP_KVM_ONLINE);
 #endif
+#endif // XXX VAC
 	kvm_irqfd_exit();
 }
 KVM_EXPORT_SYMBOL_GPL(kvm_exit);

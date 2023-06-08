@@ -173,7 +173,10 @@ int vmx_hardware_enable(void)
 		return r;
 	}
 
-//	if (enable_ept)			// XXX: VAC: Pending whether ept enable should be (why needed?) into vac
+	// XXX: VAC: Since we can have a mix of KVMs with enable_ept=0 and =1,
+	// we need to perform a global INVEPT here. TODO: Check for the
+	// vmx_capability invept bit before executing this.
+	if (1)
 		ept_sync_global();
 
 	return 0;
