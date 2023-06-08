@@ -8,6 +8,8 @@
 #include <linux/kvm_host.h>
 #include <linux/syscore_ops.h>
 
+#include "../../arch/x86/kvm/vac.h"
+
 int kvm_online_cpu(unsigned int cpu);
 int kvm_offline_cpu(unsigned int cpu);
 void hardware_disable_all(void);
