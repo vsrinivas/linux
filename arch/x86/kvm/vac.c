@@ -13,20 +13,6 @@ EXPORT_SYMBOL(user_return_msrs);
 u32 __read_mostly kvm_nr_uret_msrs;
 EXPORT_SYMBOL(kvm_nr_uret_msrs);
 
-static void kvm_user_return_msr_cpu_online(void)
-{
-	unsigned int cpu = smp_processor_id();
-	struct kvm_user_return_msrs *msrs = per_cpu_ptr(user_return_msrs, cpu);
-	u64 value;
-	int i;
-
-	for (i = 0; i < kvm_nr_uret_msrs; ++i) {
-		rdmsrl_safe(kvm_uret_msrs_list[i], &value);
-		msrs->values[i].host = value;
-		msrs->values[i].curr = value;
-	}
-}
-
 static void kvm_on_user_return(struct user_return_notifier *urn)
 {
 	unsigned int slot;
