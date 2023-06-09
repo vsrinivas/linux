@@ -200,13 +200,6 @@ EXPORT_SYMBOL(vmx_hardware_disable);
 static DECLARE_BITMAP(vmx_vpid_bitmap, VMX_NR_VPIDS);
 static DEFINE_SPINLOCK(vmx_vpid_lock);
 
-static struct vac_x86_ops vac_vmx_x86_ops __initdata = {
-	.name = KBUILD_MODNAME,
-
-	.hardware_enable = vmx_hardware_enable,
-	.hardware_disable = vmx_hardware_disable,
-};
-
 int __init vac_vmx_init(void)
 {
 	int cpu;
@@ -218,8 +211,6 @@ int __init vac_vmx_init(void)
 	}
 
         set_bit(0, vmx_vpid_bitmap); /* 0 is reserved for host */
-
-	vac_x86_ops_init(&vac_vmx_x86_ops);
 
 	return 0;
 }
@@ -248,4 +239,3 @@ void free_vpid(int vpid)
         spin_unlock(&vmx_vpid_lock);
 }
 EXPORT_SYMBOL_GPL(free_vpid);
-

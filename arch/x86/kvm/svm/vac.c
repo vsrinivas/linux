@@ -163,15 +163,7 @@ void svm_hardware_disable(void)
 }
 EXPORT_SYMBOL_GPL(svm_hardware_disable);
 
-static struct vac_x86_ops vac_svm_x86_ops __initdata = {
-	.name = KBUILD_MODNAME,
-
-	.hardware_enable = svm_hardware_enable,
-	.hardware_disable = svm_hardware_disable,
-};
-
 int __init vac_svm_init(void)
 {
-	vac_x86_ops_init(&vac_svm_x86_ops);
 	return 0;
 }
