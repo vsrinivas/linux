@@ -1,0 +1,17 @@
+name: C/C++ CI (x86/vac/hw-operations-in-vac-v3)
+
+on:
+  push:
+    branches: [ "x86/vac/hw-operations-in-vac-v3" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: config
+      run:  wget https://gist.githubusercontent.com/vsrinivas/09eebe43a305c46145d810c23bb0d996/raw/0c285468549e43263efabed0f8b469309f0517fb/gistfile1.txt -O .config
+    - name: make
+      run: make CC="ccache cc" -j`nproc`
