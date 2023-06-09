@@ -1,19 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
-#include <linux/static_call.h>
 #include <asm/msr.h>
 #include <asm/virtext.h>
 
 #include "vac.h"
 
-#define VAC_X86_OP(func)					     \
-	DEFINE_STATIC_CALL_NULL(vac_x86_##func,			     \
-				*(((struct vac_x86_ops *)0)->func));
-#define VAC_X86_OP_OPTIONAL VAC_X86_OP
-#define VAC_X86_OP_OPTIONAL_RET0 VAC_X86_OP
-#include "vac-x86-ops.h"
-
-struct vac_x86_ops vac_x86_ops;
 u32 __read_mostly kvm_uret_msrs_list[KVM_MAX_NR_USER_RETURN_MSRS];
 EXPORT_SYMBOL(kvm_uret_msrs_list);
 struct kvm_user_return_msrs __percpu *user_return_msrs;
@@ -48,21 +39,6 @@ static void kvm_on_user_return(struct user_return_notifier *urn)
 		}
 	}
 }
-
-void kvm_user_return_msr_cpu_online(void)
-{
-        unsigned int cpu = smp_processor_id();
-        struct kvm_user_return_msrs *msrs = per_cpu_ptr(user_return_msrs, cpu);
-        u64 value;
-        int i;
-
-        for (i = 0; i < kvm_nr_uret_msrs; ++i) {
-                rdmsrl_safe(kvm_uret_msrs_list[i], &value);
-                msrs->values[i].host = value;
-                msrs->values[i].curr = value;
-        }
-}
-EXPORT_SYMBOL_GPL(kvm_user_return_msr_cpu_online);
 
 static inline void drop_user_return_notifiers(void)
 {
@@ -135,13 +111,18 @@ int kvm_set_user_return_msr(unsigned int slot, u64 value, u64 mask)
 }
 EXPORT_SYMBOL(kvm_set_user_return_msr);
 
+extern int vmx_hardware_enable(void);
+extern int svm_hardware_enable(void);
 int kvm_arch_hardware_enable(void)
 {
-	int ret;
+	int ret = -EIO;
 
 	kvm_user_return_msr_cpu_online();
 
-	ret = static_call(vac_x86_hardware_enable)();
+	if (cpu_has_vmx())
+		ret = vmx_hardware_enable();
+	else if (cpu_has_svm(NULL))
+		ret = svm_hardware_enable();
 	if (ret != 0)
 		return ret;
 
@@ -150,25 +131,15 @@ int kvm_arch_hardware_enable(void)
 	return 0;
 }
 
+extern void vmx_hardware_disable(void);
+extern void svm_hardware_disable(void);
 void kvm_arch_hardware_disable(void)
 {
-	static_call(vac_x86_hardware_disable)();
+	if (cpu_has_vmx())
+		vmx_hardware_disable();
+	else if (cpu_has_svm(NULL))
+		svm_hardware_disable();
 	drop_user_return_notifiers();
-}
-
-void vac_x86_ops_init(struct vac_x86_ops *ops)
-{
-	memcpy(&vac_x86_ops, ops, sizeof(vac_x86_ops));
-#define __VAC_X86_OP(func) \
-		static_call_update(vac_x86_##func, vac_x86_ops.func);
-#define VAC_X86_OP(func) \
-		WARN_ON(!vac_x86_ops.func); __VAC_X86_OP(func)
-#define VAC_X86_OP_OPTIONAL __VAC_X86_OP
-#define VAC_X86_OP_OPTIONAL_RET0(func) \
-		static_call_update(vac_x86_##func, (void *)vac_x86_ops.func ? : \
-						   (void *)__static_call_return0);
-#include "vac-x86-ops.h"
-#undef __VAC_X86_OP
 }
 
 int __init vac_init(void)
