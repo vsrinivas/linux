@@ -21,7 +21,7 @@ EXPORT_SYMBOL_GPL(kvm_rebooting);
 
 static DEFINE_PER_CPU(bool, hardware_enabled);
 static int kvm_usage_count;
-static DEFINE_PER_CPU(bool, init_once);
+static bool init_once;
 
 static int __hardware_enable_nolock(void)
 {
@@ -195,7 +195,7 @@ int kvm_init_once(void) {
 	int r = 0;
 	int cpu;
 
-	if (__this_cpu_read(init_once))
+	if (xchg(&init_once, true))
 		return 0;
 
 #ifdef CONFIG_KVM_GENERIC_HARDWARE_ENABLING
@@ -216,7 +216,6 @@ int kvm_init_once(void) {
                 }
         }
 
-	__this_cpu_write(init_once, true);
 	return r;
 }
 EXPORT_SYMBOL_GPL(kvm_init_once);
