@@ -2,6 +2,7 @@
 
 #include <asm/msr.h>
 #include <asm/virtext.h>
+#include <linux/module.h>
 
 #include "vac.h"
 
@@ -169,6 +170,7 @@ int __init vac_init(void)
 #endif
 	return 0;
 }
+module_init(vac_init);
 
 /*
  * Handle a fault on a hardware virtualization (VMX or SVM) instruction.
