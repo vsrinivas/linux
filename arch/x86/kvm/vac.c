@@ -169,3 +169,5 @@ noinstr void kvm_spurious_fault(void)
 	BUG_ON(1);
 }
 EXPORT_SYMBOL(kvm_spurious_fault);
+
+MODULE_LICENSE("GPL");
