@@ -14,7 +14,7 @@ jobs:
     - name: make mrproper (minimal)
       run: make mrproper
     - name: config (minimal)
-      run: wget https://gist.githubusercontent.com/vsrinivas/125460123140af2c2c1f0e0fd4cab874/raw/539994b4b8905300f62f78324a13e3e4bed09cfe/gistfile1.txt -O .config
+      run: wget https://gist.githubusercontent.com/vsrinivas/125460123140af2c2c1f0e0fd4cab874/raw/e0868389b5660ea869d7fad837014f0bb2d20cb3/gistfile1.txt -O .config
     - name: make (minimal)
       run: make CC="ccache cc" -j`nproc` && make CC="ccache cc" M=arch/x86/kvm modules
     - name: fetch testdisk (minimal)
