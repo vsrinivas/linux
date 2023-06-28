@@ -4642,7 +4642,7 @@ static int svm_vm_init(struct kvm *kvm)
 	return 0;
 }
 
-static void svm_module_exit(void)
+void svm_module_exit(void)
 {
 	kvm_exit();
 }

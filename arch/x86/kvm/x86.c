@@ -13273,7 +13273,12 @@ module_init(kvm_x86_init);
 
 static void __exit kvm_x86_exit(void)
 {
-	if (kvm_x86_ops.module_exit)
-		static_call(kvm_x86_module_exit);
+	void svm_module_exit(void);
+	void vmx_module_exit(void);
+
+	if (cpu_has_svm(NULL))
+		svm_module_exit();
+	else if (cpu_has_vmx())
+		vmx_module_exit();
 }
 module_exit(kvm_x86_exit);
