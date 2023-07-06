@@ -85,6 +85,8 @@ int kvm_add_user_return_msr(u32 msr)
 
 	if (kvm_probe_user_return_msr(msr))
 		return -1;
+	if (kvm_find_user_return_msr(msr) != -1)
+		return -1;
 
 	kvm_uret_msrs_list[kvm_nr_uret_msrs] = msr;
 	return kvm_nr_uret_msrs++;

@@ -4921,7 +4921,9 @@ static __init int svm_hardware_setup(void)
 	kvm_caps.max_tsc_scaling_ratio = SVM_TSC_RATIO_MAX;
 	kvm_caps.tsc_scaling_ratio_frac_bits = 32;
 
-	tsc_aux_uret_slot = kvm_add_user_return_msr(MSR_TSC_AUX);
+	tsc_aux_uret_slot = kvm_find_user_return_msr(MSR_TSC_AUX);
+	if (tsc_aux_uret_slot == -1)
+		tsc_aux_uret_slot = kvm_add_user_return_msr(MSR_TSC_AUX);
 
 	if (boot_cpu_has(X86_FEATURE_AUTOIBRS))
 		kvm_enable_efer_bits(EFER_AUTOIBRS);
