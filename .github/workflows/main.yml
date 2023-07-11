@@ -24,4 +24,4 @@ jobs:
     - name: fetch vm-boot-test.exp
       run: wget https://raw.githubusercontent.com/vsrinivas/kvm-misc/master/vm-boot-test.exp -O vm-boot-test.exp
     - name: vm-boot-test.exp
-      run: ./vm-boot-test.exp
+      run: chmod +x ./vm-boot-test.exp && ./vm-boot-test.exp
