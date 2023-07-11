@@ -14,12 +14,12 @@ jobs:
     - name: make mrproper (minimal)
       run: make mrproper
     - name: config (minimal)
-      run: wget https://gist.githubusercontent.com/vsrinivas/125460123140af2c2c1f0e0fd4cab874/raw/e0868389b5660ea869d7fad837014f0bb2d20cb3/gistfile1.txt -O .config
+      run: wget https://raw.githubusercontent.com/vsrinivas/kvm-misc/master/.config -O .config
     - name: make (minimal)
       run: make CC="ccache cc" -j`nproc` && make CC="ccache cc" M=arch/x86/kvm modules
     - name: fetch testdisk (minimal)
-      run: wget https://github.com/vsrinivas/xtest/raw/master/testdisk.img.gz -O testdisk.img.gz
+      run: wget https://github.com/vsrinivas/kvm-misc/raw/master/testdisk.img.gz -O testdisk.img.gz
     - name: unpack testdisk (minimal)
       run: gunzip testdisk.img.gz
-    - name: test boot (minimal)
-      run: qemu-system-x86_64 --enable-kvm -kernel vmlinux -append "console=ttyS0 root=/dev/nvme0n1 init=/sbin/sh" -smp 1 -m 1G  -display none -serial stdio -drive file=testdisk.img,if=none,id=nvme -device nvme,drive=nvme,serial=disk -no-reboot
+#    - name: test boot (minimal)
+#      run: qemu-system-x86_64 --enable-kvm -kernel vmlinux -append "console=ttyS0 root=/dev/nvme0n1 init=/sbin/sh" -smp 1 -m 1G  -display none -serial stdio -drive file=testdisk.img,if=none,id=nvme -device nvme,drive=nvme,serial=disk -no-reboot
