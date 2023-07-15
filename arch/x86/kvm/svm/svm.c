@@ -4645,6 +4645,7 @@ static int svm_vm_init(struct kvm *kvm)
 void svm_module_exit(void)
 {
 	kvm_exit();
+	kvm_x86_vendor_exit();
 }
 
 static struct kvm_x86_ops svm_x86_ops __initdata = {
