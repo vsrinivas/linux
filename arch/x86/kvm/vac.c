@@ -9,7 +9,6 @@
 u32 __read_mostly kvm_uret_msrs_list[KVM_MAX_NR_USER_RETURN_MSRS];
 EXPORT_SYMBOL(kvm_uret_msrs_list);
 struct kvm_user_return_msrs __percpu *user_return_msrs;
-EXPORT_SYMBOL(user_return_msrs);
 
 u32 __read_mostly kvm_nr_uret_msrs;
 EXPORT_SYMBOL(kvm_nr_uret_msrs);
@@ -86,6 +85,8 @@ int kvm_add_user_return_msr(u32 msr)
 
 	if (kvm_probe_user_return_msr(msr))
 		return -1;
+	if (kvm_find_user_return_msr(msr) != -1)
+		return -1;
 
 	kvm_uret_msrs_list[kvm_nr_uret_msrs] = msr;
 	return kvm_nr_uret_msrs++;
@@ -160,6 +161,13 @@ void kvm_arch_hardware_disable(void)
 
 int __init vac_init(void)
 {
+        user_return_msrs = alloc_percpu(struct kvm_user_return_msrs);
+        if (!user_return_msrs) {
+                pr_err("failed to allocate percpu kvm_user_return_msrs\n");
+                return -ENOMEM;
+        }
+	kvm_nr_uret_msrs = 0;
+
 #ifdef CONFIG_KVM_INTEL
 	if (cpu_has_vmx())
 		return vac_vmx_init();
@@ -171,6 +179,12 @@ int __init vac_init(void)
 	return 0;
 }
 module_init(vac_init);
+
+void __exit vac_exit(void)
+{
+	free_percpu(user_return_msrs);
+}
+module_exit(vac_exit);
 
 /*
  * Handle a fault on a hardware virtualization (VMX or SVM) instruction.

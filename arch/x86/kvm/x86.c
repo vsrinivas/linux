@@ -9244,14 +9244,6 @@ static int __kvm_x86_vendor_init(struct kvm_x86_init_ops *ops)
 		return -ENOMEM;
 	}
 
-	user_return_msrs = alloc_percpu(struct kvm_user_return_msrs);
-	if (!user_return_msrs) {
-		pr_err("failed to allocate percpu kvm_user_return_msrs\n");
-		r = -ENOMEM;
-		goto out_free_x86_emulator_cache;
-	}
-	kvm_nr_uret_msrs = 0;
-
 	r = kvm_mmu_vendor_module_init();
 	if (r)
 		goto out_free_percpu;
@@ -9325,8 +9317,6 @@ out_unwind_ops:
 out_mmu_exit:
 	kvm_mmu_vendor_module_exit();
 out_free_percpu:
-	free_percpu(user_return_msrs);
-out_free_x86_emulator_cache:
 	kmem_cache_destroy(x86_emulator_cache);
 	return r;
 }
@@ -9364,7 +9354,6 @@ void kvm_x86_vendor_exit(void)
 #endif
 	static_call(kvm_x86_hardware_unsetup)();
 	kvm_mmu_vendor_module_exit();
-	free_percpu(user_return_msrs);
 	kmem_cache_destroy(x86_emulator_cache);
 #ifdef CONFIG_KVM_XEN
 	static_key_deferred_flush(&kvm_xen_enabled);
