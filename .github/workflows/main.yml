@@ -22,13 +22,13 @@ jobs:
     - name: config
       run: wget https://raw.githubusercontent.com/vsrinivas/kvm-misc/master/.config -O .config
     - name: make
-      run: make CC="ccache cc" -j`nproc` && make CC="ccache cc" M=arch/x86/kvm modules
+      run: make CC="ccache cc" -j`nproc` && make CC="ccache cc" M=arch/x86/kvm modules && make CC="ccache cc" M=arch/x86/kvm modules X=b
     - name: fetch testdisk
       run: wget https://github.com/vsrinivas/kvm-misc/raw/master/testdisk.img.gz -O testdisk.img.gz &&  gunzip testdisk.img.gz
     - name: fetch qemu-static and kvm-unit-tests disk
       run: wget https://github.com/vsrinivas/kvm-misc/raw/master/qemu-static.img.gz -O qemu-static.img.gz &&  gunzip qemu-static.img.gz
     - name: pack xvac.ko, kvm.ko
-      run: mcopy -i qemu-static.img arch/x86/kvm/xvac.ko ::/ &&  mcopy -i qemu-static.img virt/lib/irqbypass.ko ::/ && mcopy -i qemu-static.img arch/x86/kvm/kvm-a.ko ::/
+      run: mcopy -i qemu-static.img arch/x86/kvm/xvac.ko ::/ &&  mcopy -i qemu-static.img virt/lib/irqbypass.ko ::/ && mcopy -i qemu-static.img arch/x86/kvm/kvm-a.ko ::/ && mcopy -i qemu-static.img arch/x86/kvm/kvm-b.ko ::/
     - name: vm-boot-test.exp
       run: wget https://raw.githubusercontent.com/vsrinivas/kvm-misc/master/vm-boot-test.exp -O vm-boot-test.exp && chmod +x ./vm-boot-test.exp && ./vm-boot-test.exp
     - name: vm-boot-test-vac.exp
