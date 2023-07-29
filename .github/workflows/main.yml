@@ -33,3 +33,5 @@ jobs:
       run: wget https://raw.githubusercontent.com/vsrinivas/kvm-misc/master/vm-boot-test.exp -O vm-boot-test.exp && chmod +x ./vm-boot-test.exp && ./vm-boot-test.exp
     - name: vm-boot-test-vac.exp
       run: wget https://raw.githubusercontent.com/vsrinivas/kvm-misc/master/vm-boot-test-vac.exp -O vm-boot-test-vac.exp && chmod +x ./vm-boot-test-vac.exp && ./vm-boot-test-vac.exp
+    - name: vm-vac-reload.exp
+      run: wget https://raw.githubusercontent.com/vsrinivas/kvm-misc/master/vm-vac-reload.exp -O vm-vac-reload.exp && chmod +x ./vm-vac-reload.exp && ./vm-vac-reload.exp
