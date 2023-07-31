@@ -529,43 +529,6 @@ out:
 	preempt_enable();
 }
 
-static void svm_cpu_uninit(int cpu)
-{
-	struct svm_cpu_data *sd = per_cpu_ptr(&svm_data, cpu);
-
-	if (!sd->save_area)
-		return;
-
-	kfree(sd->sev_vmcbs);
-	__free_page(sd->save_area);
-	sd->save_area_pa = 0;
-	sd->save_area = NULL;
-}
-
-static int svm_cpu_init(int cpu)
-{
-	struct svm_cpu_data *sd = per_cpu_ptr(&svm_data, cpu);
-	int ret = -ENOMEM;
-
-	memset(sd, 0, sizeof(struct svm_cpu_data));
-	sd->save_area = alloc_page(GFP_KERNEL | __GFP_ZERO);
-	if (!sd->save_area)
-		return ret;
-
-	ret = sev_cpu_init(sd);
-	if (ret)
-		goto free_save_area;
-
-	sd->save_area_pa = __sme_page_pa(sd->save_area);
-	return 0;
-
-free_save_area:
-	__free_page(sd->save_area);
-	sd->save_area = NULL;
-	return ret;
-
-}
-
 static int direct_access_msr_slot(u32 msr)
 {
 	u32 i;
@@ -947,12 +910,7 @@ static void shrink_ple_window(struct kvm_vcpu *vcpu)
 
 static void svm_hardware_unsetup(void)
 {
-	int cpu;
-
 	sev_hardware_unsetup();
-
-	for_each_possible_cpu(cpu)
-		svm_cpu_uninit(cpu);
 
 	__free_pages(pfn_to_page(iopm_base >> PAGE_SHIFT),
 	get_order(IOPM_SIZE));
@@ -4878,10 +4836,8 @@ static __init void svm_set_cpu_caps(void)
 
 static __init int svm_hardware_setup(void)
 {
-	int cpu;
 	struct page *iopm_pages;
 	void *iopm_va;
-	int r;
 	unsigned int order = get_order(IOPM_SIZE);
 
 	/*
@@ -4971,12 +4927,6 @@ static __init int svm_hardware_setup(void)
 
 	svm_hv_hardware_setup();
 
-	for_each_possible_cpu(cpu) {
-		r = svm_cpu_init(cpu);
-		if (r)
-			goto err;
-	}
-
 	if (nrips) {
 		if (!boot_cpu_has(X86_FEATURE_NRIPS))
 			nrips = false;
@@ -5050,10 +5000,6 @@ static __init int svm_hardware_setup(void)
 	allow_smaller_maxphyaddr = !npt_enabled;
 
 	return 0;
-
-err:
-	svm_hardware_unsetup();
-	return r;
 }
 
 
