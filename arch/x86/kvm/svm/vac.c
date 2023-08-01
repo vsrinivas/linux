@@ -91,10 +91,13 @@ int svm_hardware_enable(void)
 		return -EBUSY;
 
 	sd = per_cpu_ptr(&svm_data, me);
+	memset(sd, 0, sizeof(struct svm_cpu_data));
 	sd->asid_generation = 1;
 	sd->max_asid = cpuid_ebx(SVM_CPUID_FUNC) - 1;
 	sd->next_asid = sd->max_asid + 1;
 	sd->min_asid = max_sev_asid + 1;
+	sd->save_area = alloc_page(GFP_ATOMIC | __GFP_ZERO);
+	sd->save_area_pa = __sme_page_pa(sd->save_area);
 
 	gdt = get_current_gdt_rw();
 	sd->tss_desc = (struct kvm_ldttss_desc *)(gdt + GDT_ENTRY_TSS);
@@ -152,12 +155,20 @@ EXPORT_SYMBOL_GPL(svm_hardware_enable);
 
 void svm_hardware_disable(void)
 {
+	struct svm_cpu_data *sd;
+	int me = raw_smp_processor_id();
+
 	/* Make sure we clean up behind us */
 	if (tsc_scaling)
 		// TODO: Fix this
 		//__svm_write_tsc_multiplier(SVM_TSC_RATIO_DEFAULT);
 
 	cpu_svm_disable();
+
+	sd = per_cpu_ptr(&svm_data, me);
+	__free_page(sd->save_area);
+	sd->save_area_pa = 0;
+	sd->save_area = NULL;
 
 	amd_pmu_disable_virt();
 }
