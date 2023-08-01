@@ -96,7 +96,7 @@ int svm_hardware_enable(void)
 	sd->max_asid = cpuid_ebx(SVM_CPUID_FUNC) - 1;
 	sd->next_asid = sd->max_asid + 1;
 	sd->min_asid = max_sev_asid + 1;
-	sd->save_area = alloc_page(GFP_KERNEL | __GFP_ZERO);
+	sd->save_area = alloc_page(GFP_ATOMIC | __GFP_ZERO);
 	sd->save_area_pa = __sme_page_pa(sd->save_area);
 
 	gdt = get_current_gdt_rw();
