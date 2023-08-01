@@ -22,12 +22,10 @@ EXPORT_SYMBOL(current_vmcs);
 void vac_set_vmxarea(struct vmcs *vmcs, int cpu) {
 	per_cpu(vmxarea, cpu) = vmcs;
 }
-EXPORT_SYMBOL_GPL(vac_set_vmxarea);
 
 struct vmcs *vac_get_vmxarea(int cpu) {
 	return per_cpu(vmxarea, cpu);
 }
-EXPORT_SYMBOL_GPL(vac_get_vmxarea);
 
 #ifdef CONFIG_KEXEC_CORE
 void vac_crash_vmclear_local_loaded_vmcss(void)
@@ -149,10 +147,49 @@ fault:
 	return -EFAULT;
 }
 
+static void free_kvm_area(int cpu)
+{
+	free_page((unsigned long) per_cpu(vmxarea, cpu));
+	per_cpu(vmxarea, cpu) = NULL;
+}
+
+/* Allocate root VMCS */
+static int alloc_kvm_area(int cpu)
+{
+	struct vmcs *vmcs;
+	struct page *pages;
+	u32 vmx_msr_low, vmx_msr_high;
+
+	pages = __alloc_pages_node(cpu_to_node(cpu), GFP_ATOMIC | __GFP_ZERO, 0);
+	if (!pages)
+		return -ENOMEM;
+	vmcs = page_address(pages);
+
+#if 0	// VAC
+                /*
+                 * When eVMCS is enabled, alloc_vmcs_cpu() sets
+                 * vmcs->revision_id to KVM_EVMCS_VERSION instead of
+                 * revision_id reported by MSR_IA32_VMX_BASIC.
+                 *
+                 * However, even though not explicitly documented by
+                 * TLFS, VMXArea passed as VMXON argument should
+                 * still be marked with revision_id reported by
+                 * physical CPU.
+                 */
+                if (kvm_is_using_evmcs())
+                        vmcs->hdr.revision_id = vmcs_config.revision_id;
+#endif
+	rdmsr(MSR_IA32_VMX_BASIC, vmx_msr_low, vmx_msr_high);
+	vmcs->hdr.revision_id = vmx_msr_low;
+
+	per_cpu(vmxarea, cpu) = vmcs;
+        return 0;
+}
+
 int vmx_hardware_enable(void)
 {
 	int cpu = raw_smp_processor_id();
-	u64 phys_addr = __pa(vac_get_vmxarea(cpu));
+	u64 phys_addr;
 	int r;
 
 	if (cr4_read_shadow() & X86_CR4_VMXE)
@@ -167,6 +204,12 @@ int vmx_hardware_enable(void)
 
 	intel_pt_handle_vmx(1);
 
+	r = alloc_kvm_area(cpu);
+	if (r) {
+		intel_pt_handle_vmx(0);
+		return r;
+	}
+	phys_addr = __pa(vac_get_vmxarea(cpu));
 	r = kvm_cpu_vmxon(phys_addr);
 	if (r) {
 		intel_pt_handle_vmx(0);
@@ -194,6 +237,8 @@ void vmx_hardware_disable(void)
 	hv_reset_evmcs();
 
 	intel_pt_handle_vmx(0);
+
+	free_kvm_area(raw_smp_processor_id());
 }
 EXPORT_SYMBOL(vmx_hardware_disable);
 
