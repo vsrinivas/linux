@@ -80,30 +80,17 @@ static void svm_init_erratum_383(void)
 
 int svm_hardware_enable(void)
 {
-
-	struct svm_cpu_data *sd;
 	uint64_t efer;
 	struct desc_struct *gdt;
-	int me = raw_smp_processor_id();
+	struct svm_cpu_data *sd = this_cpu_ptr(&svm_data);
 
+	gdt = get_current_gdt_rw();
+	sd->tss_desc = (struct kvm_ldttss_desc *)(gdt + GDT_ENTRY_TSS);
 	rdmsrl(MSR_EFER, efer);
 	if (efer & EFER_SVME)
 		return -EBUSY;
 
-	sd = per_cpu_ptr(&svm_data, me);
-	memset(sd, 0, sizeof(struct svm_cpu_data));
-	sd->asid_generation = 1;
-	sd->max_asid = cpuid_ebx(SVM_CPUID_FUNC) - 1;
-	sd->next_asid = sd->max_asid + 1;
-	sd->min_asid = max_sev_asid + 1;
-	sd->save_area = alloc_page(GFP_ATOMIC | __GFP_ZERO);
-	sd->save_area_pa = __sme_page_pa(sd->save_area);
-
-	gdt = get_current_gdt_rw();
-	sd->tss_desc = (struct kvm_ldttss_desc *)(gdt + GDT_ENTRY_TSS);
-
 	wrmsrl(MSR_EFER, efer | EFER_SVME);
-
 	wrmsrl(MSR_VM_HSAVE_PA, sd->save_area_pa);
 
 	if (static_cpu_has(X86_FEATURE_TSCRATEMSR)) {
@@ -114,7 +101,6 @@ int svm_hardware_enable(void)
 		// TODO: Fix this
 		//__svm_write_tsc_multiplier(SVM_TSC_RATIO_DEFAULT);
 	}
-
 
 	/*
 	 * Get OSVW bits.
@@ -155,9 +141,6 @@ EXPORT_SYMBOL_GPL(svm_hardware_enable);
 
 void svm_hardware_disable(void)
 {
-	struct svm_cpu_data *sd;
-	int me = raw_smp_processor_id();
-
 	/* Make sure we clean up behind us */
 	if (tsc_scaling)
 		// TODO: Fix this
@@ -165,20 +148,37 @@ void svm_hardware_disable(void)
 
 	cpu_svm_disable();
 
-	sd = per_cpu_ptr(&svm_data, me);
-	__free_page(sd->save_area);
-	sd->save_area_pa = 0;
-	sd->save_area = NULL;
-
 	amd_pmu_disable_virt();
 }
 EXPORT_SYMBOL_GPL(svm_hardware_disable);
 
 int __init vac_svm_init(void)
 {
+	struct svm_cpu_data *sd;
+	int cpu;
+
+	for_each_possible_cpu(cpu) {
+		sd = per_cpu_ptr(&svm_data, cpu);
+		memset(sd, 0, sizeof(struct svm_cpu_data));
+		sd->asid_generation = 1;
+		sd->max_asid = cpuid_ebx(SVM_CPUID_FUNC) - 1;
+		sd->next_asid = sd->max_asid + 1;
+		sd->min_asid = max_sev_asid + 1;
+		sd->save_area = alloc_page(GFP_KERNEL | __GFP_ZERO);
+		sd->save_area_pa = __sme_page_pa(sd->save_area);
+	}
 	return 0;
 }
 
 void vac_svm_exit(void)
 {
+	struct svm_cpu_data *sd;
+	int cpu;
+
+	for_each_possible_cpu(cpu) {
+		sd = per_cpu_ptr(&svm_data, cpu);
+		__free_page(sd->save_area);
+		sd->save_area_pa = 0;
+		sd->save_area = NULL;
+	}
 }
