@@ -160,7 +160,7 @@ static int alloc_kvm_area(int cpu)
 	struct page *pages;
 	u32 vmx_msr_low, vmx_msr_high;
 
-	pages = __alloc_pages_node(cpu_to_node(cpu), GFP_ATOMIC | __GFP_ZERO, 0);
+	pages = __alloc_pages_node(cpu_to_node(cpu), GFP_KERNEL | __GFP_ZERO, 0);
 	if (!pages)
 		return -ENOMEM;
 	vmcs = page_address(pages);
@@ -204,11 +204,6 @@ int vmx_hardware_enable(void)
 
 	intel_pt_handle_vmx(1);
 
-	r = alloc_kvm_area(cpu);
-	if (r) {
-		intel_pt_handle_vmx(0);
-		return r;
-	}
 	phys_addr = __pa(vac_get_vmxarea(cpu));
 	r = kvm_cpu_vmxon(phys_addr);
 	if (r) {
@@ -237,8 +232,6 @@ void vmx_hardware_disable(void)
 	hv_reset_evmcs();
 
 	intel_pt_handle_vmx(0);
-
-	free_kvm_area(raw_smp_processor_id());
 }
 EXPORT_SYMBOL(vmx_hardware_disable);
 
@@ -250,6 +243,10 @@ int __init vac_vmx_init(void)
 	int cpu;
 
 	for_each_possible_cpu(cpu) {
+		alloc_kvm_area(cpu);
+	}
+
+	for_each_possible_cpu(cpu) {
 		INIT_LIST_HEAD(&per_cpu(loaded_vmcss_on_cpu, cpu));
 		//pi_init_cpu(cpu);
 		// XXX: Pending moving the posted interrupt list into VAC 
@@ -258,6 +255,15 @@ int __init vac_vmx_init(void)
         set_bit(0, vmx_vpid_bitmap); /* 0 is reserved for host */
 
 	return 0;
+}
+
+void vac_vmx_exit(void)
+{
+	int cpu;
+
+	for_each_possible_cpu(cpu) {
+		free_kvm_area(cpu);
+	}
 }
 
 int allocate_vpid(void)
