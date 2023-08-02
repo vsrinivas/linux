@@ -9,7 +9,7 @@
 void vmclear_error(struct vmcs *vmcs, u64 phys_addr) {} // XXX Vac
 void invept_error(unsigned long ext, u64 eptp, gpa_t gpa) {}  // XXX VAC
 
-static DEFINE_PER_CPU(struct vmcs *, vmxarea);
+static DEFINE_PER_CPU(struct vmcs *, vmxon_vmcs);
 /*
  * We maintain a per-CPU linked-list of VMCS loaded on that CPU. This is needed
  * when a CPU is brought down, and we need to VMCLEAR all VMCSs loaded on it.
@@ -18,14 +18,6 @@ static DEFINE_PER_CPU(struct list_head, loaded_vmcss_on_cpu);
 
 DEFINE_PER_CPU(struct vmcs *, current_vmcs);
 EXPORT_SYMBOL(current_vmcs);
-
-void vac_set_vmxarea(struct vmcs *vmcs, int cpu) {
-	per_cpu(vmxarea, cpu) = vmcs;
-}
-
-struct vmcs *vac_get_vmxarea(int cpu) {
-	return per_cpu(vmxarea, cpu);
-}
 
 #ifdef CONFIG_KEXEC_CORE
 void vac_crash_vmclear_local_loaded_vmcss(void)
@@ -149,8 +141,8 @@ fault:
 
 static void free_kvm_area(int cpu)
 {
-	free_page((unsigned long) per_cpu(vmxarea, cpu));
-	per_cpu(vmxarea, cpu) = NULL;
+	free_page((unsigned long) per_cpu(vmxon_vmcs, cpu));
+	per_cpu(vmxon_vmcs, cpu) = NULL;
 }
 
 /* Allocate root VMCS */
@@ -182,7 +174,7 @@ static int alloc_kvm_area(int cpu)
 	rdmsr(MSR_IA32_VMX_BASIC, vmx_msr_low, vmx_msr_high);
 	vmcs->hdr.revision_id = vmx_msr_low;
 
-	per_cpu(vmxarea, cpu) = vmcs;
+	per_cpu(vmxon_vmcs, cpu) = vmcs;
         return 0;
 }
 
@@ -204,7 +196,7 @@ int vmx_hardware_enable(void)
 
 	intel_pt_handle_vmx(1);
 
-	phys_addr = __pa(vac_get_vmxarea(cpu));
+	phys_addr = __pa(this_cpu_ptr(vmxon_vmcs));
 	r = kvm_cpu_vmxon(phys_addr);
 	if (r) {
 		intel_pt_handle_vmx(0);
