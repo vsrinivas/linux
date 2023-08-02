@@ -178,3 +178,7 @@ int __init vac_svm_init(void)
 {
 	return 0;
 }
+
+void vac_svm_exit(void)
+{
+}
