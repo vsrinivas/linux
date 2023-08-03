@@ -196,7 +196,7 @@ int vmx_hardware_enable(void)
 
 	intel_pt_handle_vmx(1);
 
-	phys_addr = __pa(this_cpu_ptr(vmxon_vmcs));
+	phys_addr = __pa(per_cpu(vmxon_vmcs, cpu));
 	r = kvm_cpu_vmxon(phys_addr);
 	if (r) {
 		intel_pt_handle_vmx(0);
