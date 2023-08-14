@@ -8135,7 +8135,7 @@ static __init int hardware_setup(void)
 {
 	unsigned long host_bndcfgs;
 	struct desc_ptr dt;
-	int r;
+	int r = 0;
 
 	store_idt(&dt);
 	host_idt_base = dt.address;
