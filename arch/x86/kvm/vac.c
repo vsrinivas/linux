@@ -180,8 +180,15 @@ int __init vac_init(void)
 }
 module_init(vac_init);
 
+extern void vac_vmx_exit(void);
+extern void vac_svm_exit(void);
 void __exit vac_exit(void)
 {
+	if (cpu_has_vmx()) {
+		vac_vmx_exit();
+	} else if (cpu_has_svm(NULL)) {
+		vac_svm_exit();
+	}
 	free_percpu(user_return_msrs);
 }
 module_exit(vac_exit);

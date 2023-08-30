@@ -9,7 +9,7 @@
 void vmclear_error(struct vmcs *vmcs, u64 phys_addr) {} // XXX Vac
 void invept_error(unsigned long ext, u64 eptp, gpa_t gpa) {}  // XXX VAC
 
-static DEFINE_PER_CPU(struct vmcs *, vmxarea);
+static DEFINE_PER_CPU(struct vmcs *, vmxon_vmcs);
 /*
  * We maintain a per-CPU linked-list of VMCS loaded on that CPU. This is needed
  * when a CPU is brought down, and we need to VMCLEAR all VMCSs loaded on it.
@@ -18,14 +18,6 @@ static DEFINE_PER_CPU(struct list_head, loaded_vmcss_on_cpu);
 
 DEFINE_PER_CPU(struct vmcs *, current_vmcs);
 EXPORT_SYMBOL(current_vmcs);
-
-void vac_set_vmxarea(struct vmcs *vmcs, int cpu) {
-	per_cpu(vmxarea, cpu) = vmcs;
-}
-
-struct vmcs *vac_get_vmxarea(int cpu) {
-	return per_cpu(vmxarea, cpu);
-}
 
 #ifdef CONFIG_KEXEC_CORE
 void vac_crash_vmclear_local_loaded_vmcss(void)
@@ -149,8 +141,8 @@ fault:
 
 static void free_kvm_area(int cpu)
 {
-	free_page((unsigned long) per_cpu(vmxarea, cpu));
-	per_cpu(vmxarea, cpu) = NULL;
+	free_page((unsigned long) per_cpu(vmxon_vmcs, cpu));
+	per_cpu(vmxon_vmcs, cpu) = NULL;
 }
 
 /* Allocate root VMCS */
@@ -160,7 +152,7 @@ static int alloc_kvm_area(int cpu)
 	struct page *pages;
 	u32 vmx_msr_low, vmx_msr_high;
 
-	pages = __alloc_pages_node(cpu_to_node(cpu), GFP_ATOMIC | __GFP_ZERO, 0);
+	pages = __alloc_pages_node(cpu_to_node(cpu), GFP_KERNEL | __GFP_ZERO, 0);
 	if (!pages)
 		return -ENOMEM;
 	vmcs = page_address(pages);
@@ -182,7 +174,7 @@ static int alloc_kvm_area(int cpu)
 	rdmsr(MSR_IA32_VMX_BASIC, vmx_msr_low, vmx_msr_high);
 	vmcs->hdr.revision_id = vmx_msr_low;
 
-	per_cpu(vmxarea, cpu) = vmcs;
+	per_cpu(vmxon_vmcs, cpu) = vmcs;
         return 0;
 }
 
@@ -204,12 +196,7 @@ int vmx_hardware_enable(void)
 
 	intel_pt_handle_vmx(1);
 
-	r = alloc_kvm_area(cpu);
-	if (r) {
-		intel_pt_handle_vmx(0);
-		return r;
-	}
-	phys_addr = __pa(vac_get_vmxarea(cpu));
+	phys_addr = __pa(per_cpu(vmxon_vmcs, cpu));
 	r = kvm_cpu_vmxon(phys_addr);
 	if (r) {
 		intel_pt_handle_vmx(0);
@@ -237,8 +224,6 @@ void vmx_hardware_disable(void)
 	hv_reset_evmcs();
 
 	intel_pt_handle_vmx(0);
-
-	free_kvm_area(raw_smp_processor_id());
 }
 EXPORT_SYMBOL(vmx_hardware_disable);
 
@@ -250,6 +235,10 @@ int __init vac_vmx_init(void)
 	int cpu;
 
 	for_each_possible_cpu(cpu) {
+		alloc_kvm_area(cpu);
+	}
+
+	for_each_possible_cpu(cpu) {
 		INIT_LIST_HEAD(&per_cpu(loaded_vmcss_on_cpu, cpu));
 		//pi_init_cpu(cpu);
 		// XXX: Pending moving the posted interrupt list into VAC 
@@ -258,6 +247,15 @@ int __init vac_vmx_init(void)
         set_bit(0, vmx_vpid_bitmap); /* 0 is reserved for host */
 
 	return 0;
+}
+
+void vac_vmx_exit(void)
+{
+	int cpu;
+
+	for_each_possible_cpu(cpu) {
+		free_kvm_area(cpu);
+	}
 }
 
 int allocate_vpid(void)
