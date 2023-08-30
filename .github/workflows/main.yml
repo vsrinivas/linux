@@ -20,7 +20,7 @@ jobs:
     - name: make mrproper
       run: make mrproper
     - name: config
-      run: wget https://raw.githubusercontent.com/vsrinivas/kvm-misc/master/.config -O .config
+      run: cp .github/workflows/.config .config
     - name: make
       run: make CC="ccache cc" -j`nproc` && make CC="ccache cc" M=arch/x86/kvm modules && make CC="ccache cc" M=arch/x86/kvm modules X=b
     - name: fetch testdisk
@@ -30,13 +30,13 @@ jobs:
     - name: pack xvac.ko, kvm.ko
       run: mcopy -i qemu-static.img arch/x86/kvm/xvac.ko ::/ &&  mcopy -i qemu-static.img virt/lib/irqbypass.ko ::/ && mcopy -i qemu-static.img arch/x86/kvm/kvm-a.ko ::/ && mcopy -i qemu-static.img arch/x86/kvm/kvm-b.ko ::/
     - name: vm-boot-test.exp
-      run: wget https://raw.githubusercontent.com/vsrinivas/kvm-misc/master/vm-boot-test.exp -O vm-boot-test.exp && chmod +x ./vm-boot-test.exp && ./vm-boot-test.exp
+      run: .github/workflows/vm-boot-test.exp
     - name: vm-boot-test-vac.exp
-      run: wget https://raw.githubusercontent.com/vsrinivas/kvm-misc/master/vm-boot-test-vac.exp -O vm-boot-test-vac.exp && chmod +x ./vm-boot-test-vac.exp && ./vm-boot-test-vac.exp
+      run: .github/workflows/vm-boot-test-vac.exp
     - name: vm-vac-reload.exp
-      run: wget https://raw.githubusercontent.com/vsrinivas/kvm-misc/master/vm-vac-reload.exp -O vm-vac-reload.exp && chmod +x ./vm-vac-reload.exp && ./vm-vac-reload.exp
+      run: .github/workflows/vm-vac-reload.exp
     - name: vm-vac-cpu-offline-online.exp
-      run: wget https://raw.githubusercontent.com/vsrinivas/kvm-misc/master/vm-vac-cpu-offline-online.exp -O vm-vac-cpu-offline-online.exp && chmod +x ./vm-vac-cpu-offline-online.exp && ./vm-vac-cpu-offline-online.exp
+      run: .github/workflows/vm-vac-cpu-offline-online.exp
 
   build-clang:
     runs-on:

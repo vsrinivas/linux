@@ -1,0 +1,89 @@
+#!/usr/bin/expect -f
+
+# basic test that repeatedly unloads and reloads one kvm module and runs a VM
+# after each reload
+
+set timeout -1
+
+spawn qemu-system-x86_64 --enable-kvm -kernel vmlinux -append "console=ttyS0 root=/dev/nvme0n1 init=/sbin/sh" -cpu host,+invtsc -smp 2 -m 2G  -display none -serial stdio -drive file=testdisk.img,if=none,id=nvme -device nvme,drive=nvme,serial=disk -drive file=qemu-static.img,if=virtio -no-reboot
+
+expect "~ # "
+send "mount -t proc proc /proc\n"
+
+expect "~ # "
+send "mkdir /tmp\n"
+
+expect "~ # "
+send "mkdir /tmp/mnt\n"
+
+expect "~ # "
+send "mount -t vfat /dev/vda /tmp/mnt\n"
+
+expect "~ # "
+send "insmod /tmp/mnt/xvac.ko\n"
+
+expect "~ # "
+send "insmod /tmp/mnt/irqbypass.ko\n"
+
+expect "~ # "
+send "insmod /tmp/mnt/kvm-a.ko\n"
+
+expect "~ # "
+send "ln -s /dev/kvm* /dev/kvm\n"
+
+# run access_test, unload/reload kvm-a
+for {set i 1} {$i < 10} {incr i 1} {
+expect "~ # "
+send "/tmp/mnt/qemu-system-x86_64 --no-reboot  -device pc-testdev -device isa-debug-exit,iobase=0xf4,iosize=0x4 -nographic -device pci-testdev -machine accel=kvm -kernel /tmp/mnt/kvm-unit-tests/x86/access_test.flat -smp 2 -cpu host -L /tmp/mnt/share/qemu\n"
+expect "~ # "
+send "rmmod kvm-a && rm /dev/kvm\n"
+expect "~ # "
+send "insmod /tmp/mnt/kvm-a.ko\n"
+expect "~ # "
+send "ln -s /dev/kvm* /dev/kvm\n"
+}
+
+# try loading and unloading a new kvm, make sure access test still works w/ original kvm
+for {set i 1} {$i < 10} {incr i 1} {
+	expect "~ # "
+	send "insmod /tmp/mnt/kvm-b.ko\n"
+	expect "~ # "
+	send "rmmod kvm-b\n"
+
+	expect "~ # "
+	send "/tmp/mnt/qemu-system-x86_64 --no-reboot  -device pc-testdev -device isa-debug-exit,iobase=0xf4,iosize=0x4 -nographic -device pci-testdev -machine accel=kvm -kernel /tmp/mnt/kvm-unit-tests/x86/access_test.flat -smp 2 -cpu host -L /tmp/mnt/share/qemu\n"
+}
+
+# try loading and unloading a second kvm while a VM is actively booting/running
+#    concurrent unload
+for {set i 1} {$i < 10} {incr i 1} {
+	expect "~ # "
+	send "insmod /tmp/mnt/kvm-b.ko\n"
+	expect "~ # "
+	send "sleep 5 && rmmod kvm-b &\n"
+
+	expect "~ # "
+	send "/tmp/mnt/qemu-system-x86_64 --no-reboot  -device pc-testdev -device isa-debug-exit,iobase=0xf4,iosize=0x4 -nographic -device pci-testdev -machine accel=kvm -kernel /tmp/mnt/kvm-unit-tests/x86/access_test.flat -smp 2 -cpu host -L /tmp/mnt/share/qemu\n"
+
+	expect "~ # "
+	send "wait\n"
+}
+#    concurrent load
+for {set i 1} {$i < 10} {incr i 1} {
+	expect "~ # "
+	send "sleep 5 && insmod /tmp/mnt/kvm-b.ko &\n"
+
+	expect "~ # "
+	send "/tmp/mnt/qemu-system-x86_64 --no-reboot  -device pc-testdev -device isa-debug-exit,iobase=0xf4,iosize=0x4 -nographic -device pci-testdev -machine accel=kvm -kernel /tmp/mnt/kvm-unit-tests/x86/access_test.flat -smp 2 -cpu host -L /tmp/mnt/share/qemu\n"
+
+	expect "~ # "
+	send "wait\n"
+	expect "~ # "
+	send "rmmod kvm-b\n"
+}
+
+expect "~ # "
+send "rmmod kvm-a && rmmod irqbypass && rmmod xvac\n"
+
+expect "~ # "
+send "reboot -f\n"

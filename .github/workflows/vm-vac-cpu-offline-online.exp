@@ -1,0 +1,66 @@
+#!/usr/bin/expect -f
+
+# test that we can offline and online CPUs after kvm's are loaded
+# and that access_test still passes.
+
+set timeout -1
+
+spawn qemu-system-x86_64 --enable-kvm -kernel vmlinux -append "console=ttyS0 root=/dev/nvme0n1 init=/sbin/sh" -cpu host,+invtsc -smp 2 -m 2G  -display none -serial stdio -drive file=testdisk.img,if=none,id=nvme -device nvme,drive=nvme,serial=disk -drive file=qemu-static.img,if=virtio -no-reboot
+
+expect "~ # "
+send "mount -t proc proc /proc\n"
+
+expect "~ # "
+send "mkdir -p /sys\n"
+expect "~ # "
+send "mount -t sysfs sysfs /sys\n"
+
+expect "~ # "
+send "mkdir /tmp\n"
+
+expect "~ # "
+send "mkdir /tmp/mnt\n"
+
+expect "~ # "
+send "mount -t vfat /dev/vda /tmp/mnt\n"
+
+expect "~ # "
+send "insmod /tmp/mnt/xvac.ko\n"
+
+expect "~ # "
+send "insmod /tmp/mnt/irqbypass.ko\n"
+
+expect "~ # "
+send "insmod /tmp/mnt/kvm-a.ko\n"
+
+expect "~ # "
+send "ln -s /dev/kvm* /dev/kvm\n"
+
+# offline cpu1
+expect "~ # "
+send "insmod /tmp/mnt/kvm-b.ko &\n"
+expect "~ # "
+send "echo 0 > /sys/devices/system/cpu/cpu1/online\n"
+
+expect "~ # "
+send "/tmp/mnt/qemu-system-x86_64 --no-reboot  -device pc-testdev -device isa-debug-exit,iobase=0xf4,iosize=0x4 -nographic -device pci-testdev -machine accel=kvm -kernel /tmp/mnt/kvm-unit-tests/x86/access_test.flat -smp 2 -cpu host -L /tmp/mnt/share/qemu\n"
+
+# cycle kvm-b while cpu1 is offline
+expect "~ # "
+send "rmmod kvm-b\n"
+expect "~ # "
+send "insmod /tmp/mnt/kvm-b.ko &\n"
+
+# online cpu1
+expect "~ # "
+send "echo 1 > /sys/devices/system/cpu/cpu1/online\n"
+
+expect "~ # "
+send "/tmp/mnt/qemu-system-x86_64 --no-reboot  -device pc-testdev -device isa-debug-exit,iobase=0xf4,iosize=0x4 -nographic -device pci-testdev -machine accel=kvm -kernel /tmp/mnt/kvm-unit-tests/x86/access_test.flat -smp 2 -cpu host -L /tmp/mnt/share/qemu\n"
+
+# unload kvm
+expect "~ # "
+send "rmmod kvm-a && rmmod kvm-b && rmmod irqbypass && rmmod xvac\n"
+
+expect "~ # "
+send "reboot -f\n"
