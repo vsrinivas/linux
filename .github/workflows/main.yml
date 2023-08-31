@@ -47,6 +47,6 @@ jobs:
     - name: make mrproper
       run: make mrproper
     - name: config
-      run: wget https://raw.githubusercontent.com/vsrinivas/kvm-misc/master/.config -O .config
+      run: cp .github/workflows/.config .config
     - name: make
       run: make CC="ccache clang" -j`nproc` && make CC="ccache clang" M=arch/x86/kvm modules && make CC="ccache clang" M=arch/x86/kvm modules X=b
