@@ -81,10 +81,12 @@ static void reprogram_fixed_counters_in_passthrough_pmu(struct kvm_pmu *pmu, u64
 			new_data |= intel_fixed_bits_by_idx(i, pmc->current_config);
 		} else {
 			pmc->counter = 0;
+			wrmsrl(MSR_CORE_PERF_FIXED_CTR0 + i, 0);
 		}
 	}
 	pmu->fixed_ctr_ctrl_hw = new_data;
 	pmu->fixed_ctr_ctrl = data;
+	wrmsrl(MSR_CORE_PERF_FIXED_CTR_CTRL, new_data);
 }
 
 static void reprogram_fixed_counters(struct kvm_pmu *pmu, u64 data)
