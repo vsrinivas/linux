@@ -486,10 +486,15 @@ static int intel_pmu_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 					 * stop the counter by clearing the
 					 * enable bit of the event selector MSR.
 					 */
+					rdmsrl(MSR_ARCH_PERFMON_EVENTSEL0 + pmc->idx,
+					       pmc->eventsel_hw);
 					pmc->eventsel_hw &= ~ARCH_PERFMON_EVENTSEL_ENABLE;
+					wrmsrl(MSR_ARCH_PERFMON_EVENTSEL0 + pmc->idx,
+					       pmc->eventsel_hw);
 					return 0;
 				}
 				pmc->eventsel_hw = data;
+				wrmsrl(MSR_ARCH_PERFMON_EVENTSEL0 + pmc->idx, data);
 			} else if (data != pmc->eventsel) {
 				pmc->eventsel = data;
 				kvm_pmu_request_counter_reprogram(pmc);
