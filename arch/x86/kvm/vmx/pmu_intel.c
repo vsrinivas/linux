@@ -960,6 +960,22 @@ static void intel_restore_pmu_context(struct kvm_vcpu *vcpu)
 		wrmsrl(MSR_PERF_METRICS, 0);
 }
 
+void intel_set_overflow(struct kvm_vcpu *vcpu)
+{
+	struct kvm_pmu *pmu = vcpu_to_pmu(vcpu);
+	u64 global_status;
+
+	/*
+	 * PMU global status in pmu->global_status is stale when PMU context
+	 * switch happens at vcpu runloop boundary. So assign it with HW value
+	 * logically or the synthesized overflow bits from emulated counter
+	 * increments.
+	 */
+	rdmsrl(MSR_CORE_PERF_GLOBAL_STATUS, global_status);
+	wrmsrl(MSR_CORE_PERF_GLOBAL_STATUS_SET, global_status | pmu->synthesized_overflow);
+	pmu->synthesized_overflow = 0ull;
+}
+
 struct kvm_pmu_ops intel_pmu_ops __initdata = {
 	.hw_event_available = intel_hw_event_available,
 	.pmc_idx_to_pmc = intel_pmc_idx_to_pmc,
@@ -977,6 +993,7 @@ struct kvm_pmu_ops intel_pmu_ops __initdata = {
 	.passthrough_pmu_msrs = intel_passthrough_pmu_msrs,
 	.save_pmu_context = intel_save_pmu_context,
 	.restore_pmu_context = intel_restore_pmu_context,
+	.set_overflow = intel_set_overflow,
 	.EVENTSEL_EVENT = ARCH_PERFMON_EVENTSEL_EVENT,
 	.MAX_NR_GP_COUNTERS = KVM_INTEL_PMC_MAX_GENERIC,
 	.MIN_NR_GP_COUNTERS = 1,
