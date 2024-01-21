@@ -465,8 +465,8 @@ void kvm_passthrough_pmu_handle_event(struct kvm_vcpu *vcpu)
 		}
 	}
 	bitmap_zero(pmu->incremented_pmc_idx, X86_PMC_IDX_MAX);
-	pmu->global_status |= pmu->synthesized_overflow;
-	pmu->synthesized_overflow = 0;
+
+	static_call(kvm_x86_pmu_set_overflow)(vcpu);
 }
 
 void kvm_pmu_handle_event(struct kvm_vcpu *vcpu)
