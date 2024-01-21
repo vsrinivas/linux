@@ -434,21 +434,6 @@ reprogram_complete:
 	pmc->prev_counter = 0;
 }
 
-static bool kvm_passthrough_pmu_incr_counter(struct kvm_pmc *pmc)
-{
-	if (!pmc->emulated_counter)
-		return false;
-
-	pmc->counter += pmc->emulated_counter;
-	pmc->emulated_counter = 0;
-	pmc->counter &= pmc_bitmask(pmc);
-
-	if (!pmc->counter)
-		return true;
-
-	return false;
-}
-
 void kvm_passthrough_pmu_handle_event(struct kvm_vcpu *vcpu)
 {
 	struct kvm_pmu *pmu = vcpu_to_pmu(vcpu);
@@ -457,7 +442,7 @@ void kvm_passthrough_pmu_handle_event(struct kvm_vcpu *vcpu)
 	for_each_set_bit(bit, pmu->incremented_pmc_idx, X86_PMC_IDX_MAX) {
 		struct kvm_pmc *pmc = static_call(kvm_x86_pmu_pmc_idx_to_pmc)(pmu, bit);
 
-		if (kvm_passthrough_pmu_incr_counter(pmc)) {
+		if (static_call(kvm_x86_pmu_incr_counter)(pmc)) {
 			__set_bit(pmc->idx, (unsigned long *)&pmc_to_pmu(pmc)->synthesized_overflow);
 
 			if (pmc->eventsel & ARCH_PERFMON_EVENTSEL_INT)
