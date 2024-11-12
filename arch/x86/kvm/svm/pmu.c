@@ -387,6 +387,25 @@ static void amd_set_overflow(struct kvm_vcpu *vcpu)
 	pmu->synthesized_overflow = 0ull;
 }
 
+static bool amd_incr_counter(struct kvm_pmc *pmc)
+{
+	u64 counter = 0;
+
+	if (!pmc->emulated_counter)
+		return false;
+
+	rdpmcl(pmc->idx, counter);
+	counter += pmc->emulated_counter;
+	pmc->emulated_counter = 0;
+	counter &= pmc_bitmask(pmc);
+	wrmsrl(MSR_F15H_PERF_CTR + 2 * pmc->idx, counter);
+
+	if (!counter)
+		return true;
+
+	return false;
+}
+
 struct kvm_pmu_ops amd_pmu_ops __initdata = {
 	.hw_event_available = amd_hw_event_available,
 	.pmc_idx_to_pmc = amd_pmc_idx_to_pmc,
@@ -403,6 +422,7 @@ struct kvm_pmu_ops amd_pmu_ops __initdata = {
 	.save_pmu_context = amd_save_pmu_context,
 	.restore_pmu_context = amd_restore_pmu_context,
 	.set_overflow = amd_set_overflow,
+	.incr_counter = amd_incr_counter,
 	.EVENTSEL_EVENT = AMD64_EVENTSEL_EVENT,
 	.MAX_NR_GP_COUNTERS = KVM_AMD_PMC_MAX_GENERIC,
 	.MIN_NR_GP_COUNTERS = AMD64_NUM_COUNTERS,
