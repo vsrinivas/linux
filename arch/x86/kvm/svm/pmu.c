@@ -371,6 +371,22 @@ static void amd_restore_pmu_context(struct kvm_vcpu *vcpu)
 	wrmsrl(MSR_AMD64_PERF_CNTR_GLOBAL_CTL, pmu->global_ctrl);
 }
 
+static void amd_set_overflow(struct kvm_vcpu *vcpu)
+{
+	struct kvm_pmu *pmu = vcpu_to_pmu(vcpu);
+	u64 global_status;
+
+	/*
+	 * PMU global status in pmu->global_status is stale when PMU context
+	 * switch happens at vcpu runloop boundary. So assign it with HW value
+	 * logically or the synthesized overflow bits from emulated counter
+	 * increments.
+	 */
+	rdmsrl(MSR_AMD64_PERF_CNTR_GLOBAL_STATUS, global_status);
+	wrmsrl(MSR_AMD64_PERF_CNTR_GLOBAL_STATUS_SET, global_status | pmu->synthesized_overflow);
+	pmu->synthesized_overflow = 0ull;
+}
+
 struct kvm_pmu_ops amd_pmu_ops __initdata = {
 	.hw_event_available = amd_hw_event_available,
 	.pmc_idx_to_pmc = amd_pmc_idx_to_pmc,
@@ -386,6 +402,7 @@ struct kvm_pmu_ops amd_pmu_ops __initdata = {
 	.passthrough_pmu_msrs = amd_passthrough_pmu_msrs,
 	.save_pmu_context = amd_save_pmu_context,
 	.restore_pmu_context = amd_restore_pmu_context,
+	.set_overflow = amd_set_overflow,
 	.EVENTSEL_EVENT = AMD64_EVENTSEL_EVENT,
 	.MAX_NR_GP_COUNTERS = KVM_AMD_PMC_MAX_GENERIC,
 	.MIN_NR_GP_COUNTERS = AMD64_NUM_COUNTERS,
