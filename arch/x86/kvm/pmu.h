@@ -72,8 +72,11 @@ static inline u64 pmc_read_counter(struct kvm_pmc *pmc)
 	u64 counter, enabled, running;
 
 	counter = pmc->counter;
-	if (pmc_to_pmu(pmc)->passthrough)
+	if (pmc_to_pmu(pmc)->passthrough) {
+		rdpmcl(pmc->idx, pmc->counter);
+		counter = pmc->counter;
 		return counter & pmc_bitmask(pmc);
+	}
 
 	if (pmc->perf_event && !pmc->is_paused)
 		counter += perf_event_read_value(pmc->perf_event,
