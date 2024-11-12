@@ -178,10 +178,12 @@ static int amd_pmu_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 				 */
 				pmc->eventsel_hw = 0;
 				pmc->eventsel &= ~ARCH_PERFMON_EVENTSEL_ENABLE;
+				wrmsrl(msr, pmc->eventsel_hw);
 				return 0;
 			}
 			data &= ~AMD64_EVENTSEL_HOSTONLY;
 			pmc->eventsel_hw = data | AMD64_EVENTSEL_GUESTONLY;
+			wrmsrl(msr, pmc->eventsel_hw);
 		} else if (data != pmc->eventsel) {
 			kvm_pmu_request_counter_reprogram(pmc);
 		}
