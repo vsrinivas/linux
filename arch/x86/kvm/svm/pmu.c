@@ -393,6 +393,9 @@ static bool amd_incr_counter(struct kvm_pmc *pmc)
 {
 	u64 counter = 0;
 
+	if (!(pmc->eventsel_hw & ARCH_PERFMON_EVENTSEL_ENABLE))
+		pmc->emulated_counter = 0;
+
 	if (!pmc->emulated_counter)
 		return false;
 
