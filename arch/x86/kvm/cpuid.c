@@ -1037,6 +1037,7 @@ void kvm_set_cpu_caps(void)
 		F(XOP),
 		/* SKINIT, WDT, LWP */
 		F(FMA4),
+		F(TCE),
 		F(TBM),
 		F(TOPOEXT),
 		VENDOR_F(PERFCTR_CORE),
